@@ -216,3 +216,70 @@ struct Sanoq {
     long long tovar = 0, qarzdor = 0, sotuv = 0, qarz = 0;
 };
 Sanoq sanoq();
+
+// ======================= v2: saytdagi mantiq =======================
+
+// ---- Foydalanuvchilar (Django auth_user, parol pbkdf2_sha256) ----
+struct Foydalanuvchi {
+    long long id = 0;
+    wstring login;
+    bool superuser = false;
+};
+long long foydalanuvchilar_soni();
+bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f, wstring& xato);
+bool foydalanuvchi_ol(long long id, Foydalanuvchi& f);
+bool foydalanuvchi_yarat(const wstring& login, const wstring& parol, bool superuser, wstring& xato);
+bool parol_almashtir(long long id, const wstring& eski, const wstring& yangi, wstring& xato);
+bool login_almashtir(long long id, const wstring& yangi, wstring& xato);
+string parol_hash(const wstring& parol);
+bool django_bazasimi();
+
+// ---- Kassa: chek bazada turadi (sotuv_sotuv yakunlangan=0) ----
+struct Qator {
+    long long id = 0, mahsulot_id = 0;
+    wstring kod, nom, birlik, valyuta;
+    double miqdor = 0, narx = 0, qoldiq = 0;
+    bool narx_bor = false;
+    bool dollarmi() const { return valyuta == L"dollar"; }
+};
+long long ochiq_sotuv(long long kassir_id);         // bor bo'lsa o'sha, yo'q bo'lsa yangi
+string sotuv_sanasi(long long sotuv_id);
+std::vector<Qator> sotuv_qatorlari(long long sotuv_id);
+// Bir xil tovar bitta qatorga yig'iladi; qoldiq yetmasa xato
+long long sotuv_qator_qosh(long long sotuv_id, long long mahsulot_id, double miqdor, wstring& xato);
+bool sotuv_qator_miqdor(long long qator_id, double yangi, wstring& xato);
+void sotuv_qator_ochir(long long qator_id);
+// Bo'sh chek o'chiriladi (true), aks holda bekor qilingan deb belgilanadi
+bool sotuv_bekor(long long sotuv_id);
+struct AvtoHisob {
+    double som = 0, dollar = 0;
+    bool toliq = false;
+    int narxsiz = 0;
+};
+AvtoHisob avto_hisob(const std::vector<Qator>& q);
+// Yakunlash: jami — chekning to'liq summasi; qarzdor bo'lsa tolandi qismi naqd, qolgani qarz
+bool sotuv_yakunla_v2(long long sotuv_id, long long kassir_id, double jami, double jami_d,
+                      double kurs, long long qarzdor_id, double tolandi, double tolandi_d,
+                      ChekNatija& n, wstring& xato);
+std::vector<Tovar> oyna_tovarlari();  // eng ko'p sotiladigan 60 ta
+double oxirgi_kurs();                 // bugungi bank kursi yoki oxirgi yozilgani
+
+// ---- Baza fayli ----
+wstring baza_yolini_aniqla();   // saqlangan yoki BizaroPOS bazasi yoki o'z bazasi
+void baza_yolini_saqla(const wstring& yol);
+wstring oz_baza_yoli();
+wstring bizaropos_baza_yoli();
+
+// ---- Qarz yozish (qarz_qarz + qarz_qarzqator) — kassa bilan bir xil ekran ----
+enum HujjatTur { H_SOTUV, H_QARZ };
+std::vector<Qator> hujjat_qatorlari(HujjatTur t, long long id);
+long long hujjat_qator_qosh(HujjatTur t, long long id, long long mahsulot_id, double miqdor, wstring& xato);
+bool hujjat_qator_miqdor(HujjatTur t, long long qator_id, double yangi, wstring& xato);
+void hujjat_qator_ochir(HujjatTur t, long long qator_id);
+long long ochiq_qarz(long long qarzdor_id, long long kassir_id);
+long long qarz_qarzdori(long long qarz_id);
+string qarz_sanasi(long long qarz_id);
+// Bo'sh bo'lsa hujjat o'chiriladi (true)
+bool qarz_bosh_bolsa_ochir(long long qarz_id);
+bool qarz_yakunla(long long qarz_id, double jami, double jami_d, double kurs, double oldindan,
+                  double oldindan_d, wstring& xato, wstring& tolandi);

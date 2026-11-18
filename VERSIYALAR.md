@@ -1,5 +1,16 @@
 # Versiyalar tarixi
 
+## 2.0.0 — 2026-11-18
+
+Sayt bilan bir xil ko'rinish: Direct2D chizish qatlami, saytning ranglari, ikonkalari va sahifalari.
+
+- Kirish (Django parollari), yon menyu, Kechki/Kunduzgi mavzu, Sensor rejimi
+- Bosh sahifa, Sotuv (kassa) va Qarz yozish — saytdagi mantiq bilan (chek bazada turadi)
+- Qarzdorlar, hududlar, qarzdor kartasi va to'lovlar
+- Ombor ro'yxati, kirim, tuzatish, tarix, shtrix, tovar formasi
+- Sotuvlar (kunlik), Hisobot, Login/Parol, chek printeri
+- Saytning o'z bazasini (BizaroPOS-Server\db.sqlite3) to'g'ridan-to'g'ri ochadi
+
 ## 1.0.0 — 2026-11-18
 
 Xozmag'ning C++ (Win32 + SQLite) desktop versiyasi — birinchi ishlaydigan holat.

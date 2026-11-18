@@ -29,7 +29,7 @@ function Ishlat($exe, [string[]]$arg) {
 Write-Host "Xozmag v$v yig'ilmoqda..."
 Ishlat $windres @('--use-temp-file', '-I', 'build', '-I', 'res', 'res\xozmag.rc', '-O', 'coff', '-o', 'build\xozmag_res.o')
 $umumiy = @('-std=c++20', '-O2', '-Wall', '-Wno-unused-parameter', '-Wno-missing-field-initializers',
-            '-municode', '-Ibuild', '-Isrc')
+            '-municode', '-D_WIN32_WINNT=0x0A00', '-DNTDDI_VERSION=0x0A000005', '-Ibuild', '-Isrc')
 $bog = @('-municode', '-mwindows', '-static', '-s')
 # Har bir .cpp alohida jarayonda, bir vaqtda — sekin kompyuterda ancha tezroq
 New-Item -ItemType Directory -Force build\rel | Out-Null
@@ -43,6 +43,7 @@ foreach ($f in Get-ChildItem src\*.cpp) {
 $jarayonlar | Wait-Process
 foreach ($j in $jarayonlar) { if ($j.ExitCode -ne 0) { throw "Kompilyatsiya xatosi (yuqoriga qarang)" } }
 Ishlat $gpp ($bog + $obyektlar + @('build\xozmag_res.o', 'tashqi\sqlite3.dll',
+    '-ld2d1', '-ldwrite', '-lwindowscodecs', '-lshlwapi', '-lbcrypt',
     '-lcomctl32', '-lcomdlg32', '-lgdi32', '-lwinhttp', '-lole32', '-lshell32', '-luuid',
     '-lwinspool', '-o', 'build\Xozmag.exe'))
 Copy-Item tashqi\sqlite3.dll build\sqlite3.dll -Force

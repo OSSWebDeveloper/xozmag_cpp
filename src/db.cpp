@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS "qarz_qarz" ("id" integer NOT NULL PRIMARY KEY AUTOIN
 CREATE TABLE IF NOT EXISTS "qarz_qarzqator" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "mahsulot_nomi" varchar(120) NOT NULL, "birlik" varchar(10) NOT NULL, "miqdor" decimal NOT NULL, "mahsulot_id" bigint NOT NULL REFERENCES "ombor_mahsulot" ("id") DEFERRABLE INITIALLY DEFERRED, "qarz_id" bigint NOT NULL REFERENCES "qarz_qarz" ("id") DEFERRABLE INITIALLY DEFERRED, "qaytarilgan" decimal NOT NULL, "narx" decimal NULL, "valyuta" varchar(10) NOT NULL);
 CREATE TABLE IF NOT EXISTS "qarz_tolov" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "summa" decimal NOT NULL, "sana" datetime NOT NULL, "izoh" varchar(200) NOT NULL, "qarzdor_id" bigint NOT NULL REFERENCES "qarz_qarzdor" ("id") DEFERRABLE INITIALLY DEFERRED, "valyuta" varchar(10) NOT NULL, "qarz_id" bigint NULL REFERENCES "qarz_qarz" ("id") DEFERRABLE INITIALLY DEFERRED);
 CREATE TABLE IF NOT EXISTS "sotuv_sotuvqator" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "mahsulot_nomi" varchar(120) NOT NULL, "birlik" varchar(10) NOT NULL, "miqdor" decimal NOT NULL, "mahsulot_id" bigint NOT NULL REFERENCES "ombor_mahsulot" ("id") DEFERRABLE INITIALLY DEFERRED, "sotuv_id" bigint NOT NULL REFERENCES "sotuv_sotuv" ("id") DEFERRABLE INITIALLY DEFERRED, "qaytarilgan" decimal NOT NULL, "narx" decimal NULL, "valyuta" varchar(10) NOT NULL);
+CREATE TABLE IF NOT EXISTS "auth_user" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "password" varchar(128) NOT NULL, "last_login" datetime NULL, "is_superuser" bool NOT NULL, "username" varchar(150) NOT NULL UNIQUE, "last_name" varchar(150) NOT NULL, "email" varchar(254) NOT NULL, "is_staff" bool NOT NULL, "is_active" bool NOT NULL, "date_joined" datetime NOT NULL, "first_name" varchar(150) NOT NULL);
 CREATE TABLE IF NOT EXISTS "xozmag_sozlama" ("kalit" text NOT NULL PRIMARY KEY, "qiymat" text NOT NULL);
 CREATE INDEX IF NOT EXISTS "x_harakat_mahsulot" ON "ombor_omborharakati" ("mahsulot_id");
 CREATE INDEX IF NOT EXISTS "x_qarzdor_hudud" ON "qarz_qarzdor" ("hudud_id");
@@ -88,11 +89,18 @@ void Baza::och(const wstring& fayl) {
         throw BazaXato(x);
     }
     fayl_ = fayl;
-    sqlite3_busy_timeout(h_, 5000);
-    bajar("PRAGMA journal_mode=WAL");
+    sqlite3_busy_timeout(h_, 30000);
+    // Django (sayt) bazasi bo'lsa uning sozlamalariga tegilmaydi: sayt ham shu
+    // faylni ishlatishi mumkin.
+    bool django = false;
+    {
+        Sorov d = sor("SELECT count(*) FROM sqlite_master WHERE name='django_migrations'");
+        django = d.qator() && d.butun(0) > 0;
+    }
+    if (!django) bajar("PRAGMA journal_mode=WAL");
     bajar(SXEMA);
     Sorov s = sor("SELECT count(*) FROM qarz_hudud");
-    if (s.qator() && s.butun(0) == 0) {
+    if (!django && s.qator() && s.butun(0) == 0) {
         // Tumanda 13 ta hudud bor; haqiqiy nomlari keyin o'zgartiriladi.
         for (int i = 1; i <= 13; ++i)
             sor("INSERT INTO qarz_hudud (nom, tartib) VALUES (?, ?)")
@@ -854,11 +862,11 @@ static string standart_qiymat(const string& jadval, const Ustun& u) {
 }
 
 bool eski_bazani_import(const wstring& fayl, wstring& hisobot) {
-    static const char* JADVALLAR[] = {"ombor_mahsulot", "ombor_omborharakati", "ombor_dollarkursi",
+    static const char* JADVALLAR[] = {"auth_user", "ombor_mahsulot", "ombor_omborharakati", "ombor_dollarkursi",
                                       "qarz_hudud",     "qarz_qarzdor",        "sotuv_sotuv",
                                       "qarz_qarz",      "qarz_qarzqator",      "qarz_tolov",
                                       "sotuv_sotuvqator"};
-    static const wchar_t* NOMLAR[] = {L"Tovarlar",        L"Ombor harakatlari", L"Dollar kurslari",
+    static const wchar_t* NOMLAR[] = {L"Foydalanuvchilar", L"Tovarlar",        L"Ombor harakatlari", L"Dollar kurslari",
                                       L"Hududlar",        L"Qarzdorlar",        L"Cheklar (sotuv)",
                                       L"Qarz hujjatlari", L"Qarz qatorlari",    L"To'lovlar",
                                       L"Chek qatorlari"};

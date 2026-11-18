@@ -1,9 +1,37 @@
 // Chek matni va uni Windows printeri orqali chop etish (58 / 80 mm chek printerlari).
-#include "sahifa.h"
+#include "chek_chop.h"
 
+#include <shlobj.h>
 #include <winspool.h>
 
-static int chek_eni() { return sozlama("chek_eni", L"58") == L"80" ? 42 : 32; }
+#include "ui.h"
+
+wstring ini_qiymat(const wchar_t* kalit, const wchar_t* standart) {
+    PWSTR p = nullptr;
+    wstring f;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &p))) f = p;
+    CoTaskMemFree(p);
+    wchar_t b[512];
+    GetPrivateProfileStringW(L"xozmag", kalit, standart, b, 512, (f + L"\\Xozmag\\sozlama.ini").c_str());
+    return b;
+}
+
+void ini_qiymat_yoz(const wchar_t* kalit, const wstring& v) {
+    PWSTR p = nullptr;
+    wstring f;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &p))) f = p;
+    CoTaskMemFree(p);
+    WritePrivateProfileStringW(L"xozmag", kalit, v.c_str(), (f + L"\\Xozmag\\sozlama.ini").c_str());
+}
+
+static int chek_eni() { return ini_qiymat(L"chek_eni", L"80") == L"58" ? 32 : 42; }
+
+void chekni_avtomatik_chop(long long sotuv_id) {
+    if (ini_qiymat(L"chek_printer").empty()) return;
+    Chek c;
+    wstring x;
+    if (chek_ol(sotuv_id, c) && !chek_chop(c, x)) ui.xabar(L"Chek chop etilmadi: " + x, X_XATO);
+}
 
 static wstring ong(const wstring& chap, const wstring& ong_, int en) {
     int bosh = en - (int)chap.size() - (int)ong_.size();
@@ -42,9 +70,9 @@ static std::vector<wstring> bol(const wstring& s, int en) {
 wstring chek_matni(const Chek& c) {
     int en = chek_eni();
     wstring chiz(en, L'-'), r;
-    wstring dokon = sozlama("dokon_nomi", L"XOZMAG");
+    wstring dokon = L"Ulug'bek Xozmag";
     for (auto& q : bol(dokon, en)) r += markaz(q, en) + L"\n";
-    wstring izoh = sozlama("chek_izoh", L"");
+    wstring izoh = ini_qiymat(L"chek_izoh");
     for (auto& q : bol(izoh, en)) r += markaz(q, en) + L"\n";
     r += ong(L"Chek #" + std::to_wstring(c.id), mahalliy_vaqt(c.sana_utc), en) + L"\n";
     if (c.bekor) r += markaz(L"*** BEKOR QILINGAN ***", en) + L"\n";
@@ -90,7 +118,7 @@ std::vector<wstring> printerlar() {
 }
 
 bool chek_chop(const Chek& c, wstring& xato) {
-    wstring printer = sozlama("printer", L"");
+    wstring printer = ini_qiymat(L"chek_printer");
     if (printer.empty()) {
         wchar_t b[512];
         DWORD n = 512;

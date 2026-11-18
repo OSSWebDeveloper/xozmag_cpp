@@ -1,9 +1,12 @@
-// Dastur resurslari: ikonka, manifest, versiya
+// Dastur resurslari: ikonka, manifest, sayt fayllari, versiya
 #include <windows.h>
 #include "versiya_raqam.h"
 
-1 ICON "xozmag.ico"
+1 ICON "sayt/bizaropos.ico"
 1 24 "xozmag.manifest"
+201 RCDATA "sayt/ikonlar.html"
+202 RCDATA "sayt/bosh-fon.jpg"
+203 RCDATA "sayt/bosh-kunduzgi.svg"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION VER_A,VER_B,VER_C,0
@@ -16,9 +19,9 @@ BEGIN
     BLOCK "040904B0"
     BEGIN
       VALUE "CompanyName", "Xozmag"
-      VALUE "FileDescription", "Xozmag - kassa, ombor va qarz daftari"
+      VALUE "FileDescription", "Ulugbek Xozmag"
       VALUE "FileVersion", VER_MATN
-      VALUE "ProductName", "Xozmag"
+      VALUE "ProductName", "Ulugbek Xozmag"
       VALUE "ProductVersion", VER_MATN
       VALUE "OriginalFilename", "Xozmag.exe"
     END

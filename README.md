@@ -1,57 +1,47 @@
-# Xozmag (C++)
+# Ulug'bek Xozmag — exe (C++)
 
-Qurilish mollari do'koni uchun **kassa, ombor va qarz daftari** — Windows uchun o'rnatiladigan
-dastur. Django'dagi Xozmag'ning (BizaroPOS) C++ dagi ko'rinishi: internet va server kerak emas,
-bitta kompyuterda ishlaydi.
+Saytdagi Xozmag (Django / BizaroPOS) bilan **bir xil ko'rinish va bir xil ishlash**, lekin
+brauzersiz: kompyuterga o'rnatiladigan `Xozmag.exe`. Sahifalar saytning CSS'i (`uslub.css`)
+bo'yicha Direct2D bilan chiziladi: o'sha ranglar (kechki / kunduzgi mavzu), o'sha ikonkalar
+(`ikonlar.html` dan SVG), o'sha yon menyu, kartalar, jadvallar va oynalar.
 
-## O'rnatish
+## Baza
 
-`natija\Xozmag_Ornatuvchi_vX.Y.Z.exe` ni ishga tushiring. Administrator huquqi kerak emas.
+Jadvallar Django bilan aynan bir xil. Dastur ochilganda:
 
-- Dastur: `%LOCALAPPDATA%\Programs\Xozmag` (Xozmag.exe, sqlite3.dll, Ochirish.exe)
-- Ma'lumotlar: `%LOCALAPPDATA%\Xozmag\xozmag.sqlite3` va `zaxira\` — qayta o'rnatganda ham,
-  o'chirganda ham tegilmaydi
-- Ish stoli va Pusk menyusida yorliq; «Ilovalar va imkoniyatlar» dan o'chiriladi
+1. `%LOCALAPPDATA%\Xozmag\baza_yoli.txt` da saqlangan fayl, bo'lmasa
+2. **saytning o'z bazasi** `%LOCALAPPDATA%\BizaroPOS-Server\db.sqlite3`, bo'lmasa
+3. alohida `%LOCALAPPDATA%\Xozmag\xozmag.sqlite3`.
 
-## Bo'limlar
+Ya'ni do'kon kompyuterida exe va sayt **bitta bazada** ishlaydi: exe'da yozilgan chek saytda
+ko'rinadi va aksincha. Kirish sahifasining pastida qaysi fayl ochilgani yoziladi va
+«Bazani tanlash» bilan boshqasini tanlash mumkin. Login va parol — saytdagisi (Django
+`pbkdf2_sha256` xeshi tekshiriladi).
 
-| Bo'lim | Nima qiladi |
+## Bo'limlar (v2.0.0)
+
+| Bo'lim | Holat |
 |---|---|
-| **Kassa** | Kod / skaner (27 = 0027, eski 5–6 xonali etiketka, tarozi EAN-13 og'irligi bilan), miqdor, chek. Raqamlar klaviaturasi o'ngda. «Jami» savdolashib o'zgaradi, «To'landi» kam bo'lsa qolgani tanlangan qarzdorga yoziladi. Ombor faqat yakunlashda kamayadi. F2 — tovar qidirish, F4 — qarzdor, F12 — yakunlash, Del — qatorni o'chirish |
-| **Qarz daftari** | Qarzdorlar (so'm va $ alohida), qarz/to'lov tarixi, to'lov qabul qilish, hududlar, «Qarz yozish» kassaga o'tkazadi |
-| **Ombor** | ~10 000 tovar (virtual ro'yxat), qidiruv, ustun bo'yicha tartiblash, yangi tovar, tahrir, kirim (rulon → metr kabi ikki birlik), qoldiqni tuzatish, yashirish, harakatlar tarixi |
-| **Hisobot** | Kun bo'yicha naqd tushum, qarzga yozilgan, qarz to'lovlari, cheklar; chekni ko'rish va qayta chop etish |
-| **Sozlamalar** | Do'kon nomi, chek printeri (58/80 mm), dollar kursi (qo'lda yoki cbu.uz), **eski bazani import**, zaxira |
+| Kirish, yon menyu, Kechki/Sensor richaglari, Chiqish | saytdagidek |
+| Bosh sahifa (zarrachali fon, shisha kartalar) | saytdagidek |
+| Sotuv (kassa): kod/skaner, qidiruv, F2 tovar oynasi, miqdorni ko'paytirish, «Qarzga» oynachasi (avtomatik bo'linish, yangi qarzdor), yakunlash, bekor qilish | saytdagidek |
+| Qarz yozish (kassa ko'rinishi, «Oldindan» to'lov) | saytdagidek |
+| Qarzdorlar: tanlov, ro'yxat, hududlar (+ qo'shish), qarzdor kartasi, to'lov, yangi/tahrir, «Oldin qarz olgan» | saytdagidek |
+| Ombor: qidiruv, filtrlar, 50 tadan sahifalash, kirim, tuzatish, tarix, shtrix, tovar formasi | saytdagidek |
+| Sotuvlar (kunlik cheklar), Hisobot | saytdagidek |
+| Login / Parol | saytdagidek |
+| Qurilmalar | hozircha faqat chek printeri |
+| Excel import/eksport, yangilanishlar, etiketka, tarozi, tovar qaytarish, Kassalar | keyingi versiyalarda |
 
-## Eski bazadan ko'chirish
+## O'rnatish va yig'ish
 
-Jadvallar Django'dagi Xozmag bilan **aynan bir xil** (`ombor_mahsulot`, `qarz_qarz`,
-`sotuv_sotuv` ...). Sozlamalar → «Eski bazani import qilish» → `db.sqlite3` ni tanlang.
-Fayl faqat o'qiladi; oldin dasturdagi joriy ma'lumotlarning zaxirasi olinadi. Eski
-versiyalardagi bazada yo'q ustunlarga standart qiymat qo'yiladi.
-
-## Yig'ish
-
-Kerak: WinLibs GCC (`D:\mingw64\bin`), Python (faqat ikonka va versiya uchun).
+`natija\Xozmag_Ornatuvchi_vX.Y.Z.exe` — administrator huquqisiz o'rnatadi.
 
 ```
 powershell -ExecutionPolicy Bypass -File qurish.ps1
 ```
 
-Natija: `build\Xozmag.exe` va `natija\Xozmag_Ornatuvchi_vX.Y.Z.exe`. SQLite —
-`tashqi\sqlite3.dll` (public domain), g++ unga to'g'ridan-to'g'ri ulanadi.
+Kerak: WinLibs GCC (`D:\mingw64\bin`), Windows 10 1703+ (SVG ikonkalar uchun Direct2D).
+Sinov uchun boshqa baza bilan: `Xozmag.exe --baza D:\sinov\db.sqlite3`.
 
-Sinov uchun alohida baza bilan: `Xozmag.exe --malumot D:\sinov_papka`.
-
-## Versiyalash
-
-`versiya.txt` — yagona manba (qurishda .exe ichiga yoziladi).
-
-```
-python versiya.py 1.1.0 "Qisqa izoh" -b "band"
-```
-
-## Hali ko'chirilmagan (Django versiyasida bor)
-
-Rang (kolerovka) bo'limi, tarozi va etiketka printeriga yuborish, Excel orqali omborni
-yangilash, kassirlar akkaunti, tovar qaytarish, bir nechta kassa tarmoqda.
+`versiya.txt` — yagona manba; `python versiya.py 2.1.0 "izoh"`.
