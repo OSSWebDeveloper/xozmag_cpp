@@ -18,7 +18,7 @@ ko'rinadi va aksincha. Kirish sahifasining pastida qaysi fayl ochilgani yoziladi
 «Bazani tanlash» bilan boshqasini tanlash mumkin. Login va parol — saytdagisi (Django
 `pbkdf2_sha256` xeshi tekshiriladi).
 
-## Bo'limlar (v2.0.0)
+## Bo'limlar
 
 | Bo'lim | Holat |
 |---|---|
@@ -28,10 +28,11 @@ ko'rinadi va aksincha. Kirish sahifasining pastida qaysi fayl ochilgani yoziladi
 | Qarz yozish (kassa ko'rinishi, «Oldindan» to'lov) | saytdagidek |
 | Qarzdorlar: tanlov, ro'yxat, hududlar (+ qo'shish), qarzdor kartasi, to'lov, yangi/tahrir, «Oldin qarz olgan» | saytdagidek |
 | Ombor: qidiruv, filtrlar, 50 tadan sahifalash, kirim, tuzatish, tarix, shtrix, tovar formasi | saytdagidek |
+| Excel: yuklab olish, shablon, Excel'dan yangilash (qoralama/qo'llash/bekor), Yangilanishlar | saytdagidek (v2.1.0) |
 | Sotuvlar (kunlik cheklar), Hisobot | saytdagidek |
 | Login / Parol | saytdagidek |
 | Qurilmalar | hozircha faqat chek printeri |
-| Excel import/eksport, yangilanishlar, etiketka, tarozi, tovar qaytarish, Kassalar | keyingi versiyalarda |
+| Etiketka, tarozi, tovar qaytarish, Kassalar | keyingi versiyalarda |
 
 ## O'rnatish va yig'ish
 

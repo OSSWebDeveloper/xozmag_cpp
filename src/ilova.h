@@ -9,6 +9,7 @@ enum Joy {
     J_KIRISH, J_BOSH, J_SOTUV, J_SOTUVLAR, J_HISOBOT,
     J_QARZDORLAR, J_QARZDOR_ROYXAT, J_HUDUDLAR, J_HUDUD, J_KARTA, J_YANGI_QARZDOR, J_QIDIRISH,
     J_OMBOR, J_MAHSULOT, J_QURILMALAR, J_KASSALAR, J_AKKAUNT, J_QARZ_YOZ,
+    J_EXCEL, J_YANGILANISHLAR, J_YANGILANISH, J_QATOR,
     J_SONI
 };
 
@@ -46,6 +47,15 @@ void mahsulot_ochildi(long long p);
 void mahsulot_chiz(R r);
 void sotuvlar_ochildi(long long p);
 void sotuvlar_chiz(R r);
+void excel_yuklash_ochildi(long long p);
+void excel_yuklash_chiz(R r);
+void yangilanishlar_ochildi(long long p);
+void yangilanishlar_chiz(R r);
+void yangilanish_ochildi(long long p);
+void yangilanish_chiz(R r);
+void qator_ochildi(long long p);
+void qator_chiz(R r);
+void ombor_shablon();
 void qurilmalar_ochildi(long long p);
 void qurilmalar_chiz(R r);
 void akkaunt_ochildi(long long p);

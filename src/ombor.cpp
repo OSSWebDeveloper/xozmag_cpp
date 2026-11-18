@@ -1,7 +1,10 @@
 // OMBOR — templates/ombor/royxat.html, kirim_forma.html, qoldiq_tuzatish.html, harakatlar.html,
 // mahsulot_form.html
 #include "db3.h"
+#include "excel.h"
 #include "ilova.h"
+
+void ombor_eksport(const std::vector<const OmborTovar*>& tl, bool kam);  // excel_sahifa.cpp
 
 namespace {
 
@@ -276,10 +279,25 @@ void ombor_chiz(R r) {
         return b;
     };
     const wchar_t* keyin = L"Bu amal dasturning keyingi versiyasida qo'shiladi (hozircha saytda).";
-    if (kichik_t("om/eks", L"Omborni Excel'ga yuklab olish", YASHIL, "i-yuklab-ol")) ui.xabar(keyin, X_INFO);
-    if (kichik_t("om/exy", L"Excel'dan yangilash", ASOSIY, "i-yuklash")) ui.xabar(keyin, X_INFO);
-    if (kichik_t("om/yan", L"Yangilanishlar", TINCH, "i-tarix")) ui.xabar(keyin, X_INFO);
-    if (kichik_t("om/sha", L"Bo'sh shablon", TINCH, nullptr)) ui.xabar(keyin, X_INFO);
+    if (kichik_t("om/eks", L"Omborni Excel'ga yuklab olish", YASHIL, "i-yuklab-ol")) ombor_eksport(natija, filtr.kam);
+    if (kichik_t("om/exy", L"Excel'dan yangilash", ASOSIY, "i-yuklash")) ot(J_EXCEL);
+    {
+        // «Yangilanishlar» + qoralamalar nishoni (tugma ichida)
+        static long long qor = -1;
+        static DWORD vaqt = 0;
+        if (GetTickCount() - vaqt > 3000) { qor = qoralamalar_soni(); vaqt = GetTickCount(); }
+        wstring nt = qor > 0 ? std::to_wstring(qor) + L" qoralama" : L"";
+        float nw = nt.empty() ? 0 : gfx.matn_eni(nt, 11, 600) + 22;
+        float bw = gfx.matn_eni(L"Yangilanishlar", 13, 600) + 22 + 22 + nw;
+        bool b = ui.tugma("om/yan", {bx, y, bw, 34}, L"Yangilanishlar", TINCH, "i-tarix", true);
+        if (!nt.empty()) {
+            // tugma matni markazda — nishonni o'ng chetga qo'yamiz
+            ui.nishon(bx + bw - nw - 4, y + 7.5f, nt, M->ogoh_fon, M->ogoh_chek, M->ogoh);
+        }
+        bx += bw + 8;
+        if (b) ot(J_YANGILANISHLAR);
+    }
+    if (kichik_t("om/sha", L"Bo'sh shablon", TINCH, nullptr)) ombor_shablon();
     if (kichik_t("om/tar", L"Taroziga yuborish", TINCH, nullptr)) ui.xabar(keyin, X_INFO);
     y += 34 + 14;
     if (tugagan) {

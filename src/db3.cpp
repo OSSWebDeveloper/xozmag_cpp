@@ -272,7 +272,10 @@ std::vector<const OmborTovar*> ombor_filtrla(const OmborFiltr& f) {
         if (!mos_keladi(o.t.izlash, b)) continue;
         r.push_back(&o);
     }
+    // ombor/excel.py tovarlar(): kg tovarlar birinchi, keyin kod (yoki qoldiq)
     std::stable_sort(r.begin(), r.end(), [&](const OmborTovar* a, const OmborTovar* b2) {
+        bool ka = a->t.birlik == L"kg", kb = b2->t.birlik == L"kg";
+        if (ka != kb) return ka;
         if (f.kam && a->t.qoldiq != b2->t.qoldiq) return a->t.qoldiq < b2->t.qoldiq;
         return a->t.kod < b2->t.kod;
     });

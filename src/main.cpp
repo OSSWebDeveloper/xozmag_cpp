@@ -54,6 +54,10 @@ void ot(Joy j, long long p) {
         case J_SOTUVLAR: sotuvlar_ochildi(p); break;
         case J_AKKAUNT: akkaunt_ochildi(p); break;
         case J_QURILMALAR: qurilmalar_ochildi(p); break;
+        case J_EXCEL: excel_yuklash_ochildi(p); break;
+        case J_YANGILANISHLAR: yangilanishlar_ochildi(p); break;
+        case J_YANGILANISH: yangilanish_ochildi(p); break;
+        case J_QATOR: qator_ochildi(p); break;
         default: break;
     }
     SetFocus(hOyna);
@@ -82,7 +86,7 @@ static bool faolmi(Joy band) {
         case J_HISOBOT: return joriy == J_HISOBOT;
         case J_QARZDORLAR:
             return (joriy >= J_QARZDORLAR && joriy <= J_QIDIRISH) || joriy == J_QARZ_YOZ;
-        case J_OMBOR: return joriy == J_OMBOR || joriy == J_MAHSULOT;
+        case J_OMBOR: return joriy == J_OMBOR || joriy == J_MAHSULOT || (joriy >= J_EXCEL && joriy <= J_QATOR);
         default: return joriy == band;
     }
 }
@@ -182,6 +186,10 @@ static void chiz() {
             case J_MAHSULOT: mahsulot_chiz(sahifa); break;
             case J_AKKAUNT: akkaunt_chiz(sahifa); break;
             case J_QURILMALAR: qurilmalar_chiz(sahifa); break;
+            case J_EXCEL: excel_yuklash_chiz(sahifa); break;
+            case J_YANGILANISHLAR: yangilanishlar_chiz(sahifa); break;
+            case J_YANGILANISH: yangilanish_chiz(sahifa); break;
+            case J_QATOR: qator_chiz(sahifa); break;
             case J_KASSALAR: tayyorlanmoqda_chiz(sahifa, L"Kassalar", "i-savdo"); break;
             default: break;
         }
@@ -195,6 +203,15 @@ static LRESULT CALLBACK jarayon(HWND h, UINT m, WPARAM w, LPARAM l) {
     float ms = gfx.masshtab();
     switch (m) {
         case WM_PAINT: {
+            // Kadr ichida MessageBox/fayl oynasi ochilsa Windows qayta chizishni so'raydi.
+            // Ichma-ich kadr bosish hodisasini ikkinchi marta «ko'rib» qoladi — ruxsat yo'q.
+            static bool chizilmoqda = false, keyin = false;
+            if (chizilmoqda) {
+                ValidateRect(h, nullptr);
+                keyin = true;  // kadr tugagach qayta chiziladi
+                return 0;
+            }
+            struct Bayroq { bool& b; Bayroq(bool& x) : b(x) { b = true; } ~Bayroq() { b = false; } } bayroq(chizilmoqda);
             PAINTSTRUCT ps;
             BeginPaint(h, &ps);
             try {
@@ -204,6 +221,10 @@ static LRESULT CALLBACK jarayon(HWND h, UINT m, WPARAM w, LPARAM l) {
                 MessageBoxW(h, (L"Kutilmagan xato:\n" + W(e.what())).c_str(), L"Xozmag", MB_ICONERROR);
             }
             EndPaint(h, &ps);
+            if (keyin) {
+                keyin = false;
+                InvalidateRect(h, nullptr, FALSE);
+            }
             return 0;
         }
         case WM_ERASEBKGND: return 1;
