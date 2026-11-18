@@ -1,0 +1,31 @@
+// Ornatuvchi resurslari: ichiga qadalgan dastur fayllari
+#include <windows.h>
+#include "versiya_raqam.h"
+
+1 ICON "res/xozmag.ico"
+1 24 "ornatuvchi/ornatuvchi.manifest"
+101 RCDATA "build/Xozmag.exe"
+102 RCDATA "build/sqlite3.dll"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION VER_A,VER_B,VER_C,0
+PRODUCTVERSION VER_A,VER_B,VER_C,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Xozmag"
+      VALUE "FileDescription", "Xozmag ornatuvchisi"
+      VALUE "FileVersion", VER_MATN
+      VALUE "ProductName", "Xozmag"
+      VALUE "ProductVersion", VER_MATN
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200
+  END
+END

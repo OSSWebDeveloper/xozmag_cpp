@@ -1,0 +1,30 @@
+// Dastur resurslari: ikonka, manifest, versiya
+#include <windows.h>
+#include "versiya_raqam.h"
+
+1 ICON "xozmag.ico"
+1 24 "xozmag.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION VER_A,VER_B,VER_C,0
+PRODUCTVERSION VER_A,VER_B,VER_C,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Xozmag"
+      VALUE "FileDescription", "Xozmag - kassa, ombor va qarz daftari"
+      VALUE "FileVersion", VER_MATN
+      VALUE "ProductName", "Xozmag"
+      VALUE "ProductVersion", VER_MATN
+      VALUE "OriginalFilename", "Xozmag.exe"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200
+  END
+END
