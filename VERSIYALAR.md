@@ -1,5 +1,15 @@
 # Versiyalar tarixi
 
+## 2.6.0 — 2026-11-19
+
+Sayt bilan to'liq tenglashtirish
+
+- Qurilmalar: «Shu kassa», «Skaner va etiketkani sinash», USB qurilmalar ro'yxati (har 10 soniyada, «Yangi»)
+- Login/Parol: Django parol qoidalari (8 belgi, oddiy parollar ro'yxati, faqat raqam emas, loginga o'xshamasin), standart parol ogohlantirishi; kirish xatosi qutida
+- Qoldiqni tuzatish saytdagidek: o'zgarmagan qoldiq rad etiladi, parallel o'zgarish bosib ketilmaydi, tarixda «Qoldiq: eski → yangi»
+- Shtrix kod, tovar formasi va hudud tekshiruvlari saytdagi xabarlar bilan
+- Tuzatildi: Ombordagi «Tuzatish» va Qarzdorlardagi «Qarz yozish» tugmalarini qator bosilishi yutib yuborardi
+
 ## 2.5.0 — 2026-11-19
 
 Tovar qaytarish va Kassalar bo'limi (saytdagi bilan bir xil)
