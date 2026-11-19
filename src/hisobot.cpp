@@ -24,10 +24,14 @@ SYSTEMTIME bugun() {
     return t;
 }
 
-// ---- chek oynasi (sotuv:chek) ----
-long long chek_oyna = 0;
+}  // namespace
 
-void chek_oynasi() {
+// ---- chek oynasi (sotuv:chek) ----
+static long long chek_oyna = 0;
+void chek_oynasini_och(long long id) { chek_oyna = id; }
+
+void chek_oynasi_chiz() {
+    if (!chek_oyna) return;
     Chek c;
     if (!chek_ol(chek_oyna, c)) {
         chek_oyna = 0;
@@ -37,7 +41,9 @@ void chek_oynasi() {
     int satr = 1;
     for (wchar_t ch : m) satr += ch == L'\n';
     bool yop = false;
-    R t = oyna("chk", L"Chek #" + std::to_wstring(c.id), 560, 58 + 28 + satr * 19.f + 50 + 28 + 14, yop);
+    Shtrix sh = shtrix_yasa(savdo_chek_kodi(c.id));
+    float shb = sh.eni ? 12 + 56 + 22 + 20 : 0;
+    R t = oyna("chk", L"Chek #" + std::to_wstring(c.id), 560, 58 + 28 + satr * 19.f + shb + 50 + 28 + 14, yop);
     if (yop) { chek_oyna = 0; return; }
     R q = t.ichki(14);
     gfx.quti({q.x, q.y, q.w, q.h - 64}, hex("#ffffff"), 6);
@@ -49,12 +55,28 @@ void chek_oynasi() {
         y += 19;
         satr_m.clear();
     }
+    if (sh.eni) {
+        y += 12;
+        float mod = std::min(2.f, (q.w - 60) / sh.eni), chap = q.x + (q.w - sh.eni * mod) / 2;
+        for (auto [bx, bw] : sh.chiziqlar) gfx.quti({chap + bx * mod, y, bw * mod, 56}, hex("#000000"));
+        y += 56;
+        gfx.matn({q.x, y, q.w, 22}, savdo_chek_kodi(c.id), 14, 600, hex("#111111"), MARKAZ);
+        y += 22;
+        gfx.matn({q.x, y, q.w, 20}, L"Qaytarish uchun chekni saqlang.", 12, 400, hex("#444444"), MARKAZ);
+    }
+    if (!c.bekor && ui.tugma("chk/qayt", {q.x, q.p() - 50, 220, 50}, L"Mahsulot qaytarish", ODDIY, "i-kirim")) {
+        chek_oyna = 0;
+        ot(J_CHEK_QAYTARISH, c.id);
+        return;
+    }
     if (ui.tugma("chk/chop", {q.o() - 220, q.p() - 50, 220, 50}, L"Chekni chop etish", ASOSIY, "i-printer")) {
         wstring x;
         if (chek_chop(c, x)) ui.xabar(L"Chek printerga yuborildi.");
         else ui.xabar(L"Chop etilmadi: " + x, X_XATO);
     }
 }
+
+namespace {
 
 // ======================= Hisobot =======================
 
@@ -171,7 +193,7 @@ void hisobot_chiz(R r) {
         y += qb;
     }
     ui.scroll_tugat();
-    if (chek_oyna) chek_oynasi();
+    chek_oynasi_chiz();
 }
 
 // ======================= Sotuvlar (kunlik) =======================
@@ -187,7 +209,10 @@ void sotuvlar_yukla() {
     ks = kun_sotuvlari(ks_kun);
 }
 
-float chek_boyi(const SotuvKun& s) { return 50 + s.q.size() * 44.f + (s.qarz_bor ? 16 : 0); }
+float chek_boyi(const SotuvKun& s) {
+    bool qayt = s.qayt > 0 || s.qayt_d > 0 || s.qarz_qayt > 0 || s.qarz_qayt_d > 0;
+    return 50 + s.q.size() * 50.f + (s.qarz_bor ? 16 : 0) + (qayt ? 18 : 0);
+}
 }  // namespace
 
 void sotuvlar_ochildi(long long) {
@@ -200,8 +225,10 @@ void sotuvlar_ochildi(long long) {
 
 void sotuvlar_chiz(R r) {
     if (ui.tugma("sv/qaytar", {r.x, r.y, gfx.matn_eni(L"Chekni skanerlab qaytarish", 15, 600) + 36, 50},
-                 L"Chekni skanerlab qaytarish"))
-        ui.xabar(L"Tovar qaytarish dasturning keyingi versiyasida qo'shiladi.", X_INFO);
+                 L"Chekni skanerlab qaytarish")) {
+        ot(J_CHEK_QAYTARISH, 0);
+        return;
+    }
     r.y += 64;
     r.h -= 64;
     SYSTEMTIME b = bugun();
@@ -299,20 +326,55 @@ void sotuvlar_chiz(R r) {
                              12, 400, M->matn2, ONG);
             }
             float qy = t.y + 50 + (s.qarz_bor ? 16 : 0);
+            // «qaytarildi: ...» (naqddan va qarzdan)
+            if (s.qayt > 0 || s.qayt_d > 0 || s.qarz_qayt > 0 || s.qarz_qayt_d > 0) {
+                wstring m = L"qaytarildi:";
+                if (s.qayt > 0) m += L" " + pul(s.qayt) + L" so'm";
+                if (s.qayt_d > 0) m += L" " + son(s.qayt_d) + L" $";
+                if (s.qarz_qayt > 0 || s.qarz_qayt_d > 0) {
+                    if (s.qayt > 0 || s.qayt_d > 0) m += L" ·";
+                    m += L" qarzdan";
+                    if (s.qarz_qayt > 0) m += L" " + pul(s.qarz_qayt) + L" so'm";
+                    if (s.qarz_qayt_d > 0) m += L" " + son(s.qarz_qayt_d) + L" $";
+                }
+                gfx.matn({t.x + 13, qy - 2, t.w - 26, 18}, m, 12, 500, M->ogoh, ONG);
+                qy += 18;
+            }
+            bool sotuvdan_chiq = false;
             for (size_t i = 0; i < s.q.size(); ++i) {
                 auto& z = s.q[i];
-                R row = {t.x, qy + i * 44.f, t.w, 44};
+                R row = {t.x, qy + i * 50.f, t.w, 50};
                 if (i + 1 < s.q.size()) gfx.chiziq(row.x, row.p() - .5f, row.o(), row.p() - .5f, M->chegara);
-                float nw = std::min(gfx.matn_eni(z.nom, 15, 400), row.w - 300);
-                gfx.matn({row.x + 13, row.y, row.w - 300, row.h}, z.nom, 15, 400, M->matn.shaffof(op));
-                if (z.valyuta == L"dollar") ui.nishon(row.x + 19 + nw, row.y + 12, L"$", M->tasdiq_fon, M->tasdiq_chek, M->tasdiq);
+                const float TUG = 150;  // qaytarish tugmasi ustuni
+                float kx = row.x + 13;
+                if (!z.kod.empty()) {
+                    gfx.matn({kx, row.y, 60, row.h}, z.kod, 13, 700, M->matn3.shaffof(op));
+                    kx += 56;
+                }
+                float nom_w = row.w - (kx - row.x) - 220 - TUG;
+                float nw = std::min(gfx.matn_eni(z.nom, 15, 400), nom_w);
+                gfx.matn({kx, row.y, nom_w, row.h}, z.nom, 15, 400, M->matn.shaffof(op));
+                if (z.valyuta == L"dollar") ui.nishon(kx + 6 + nw, row.y + 15, L"$", M->tasdiq_fon, M->tasdiq_chek, M->tasdiq);
+                float ox = row.o() - TUG;
                 float bw2 = gfx.matn_eni(z.birlik, 15, 400);
-                gfx.matn({row.o() - 13 - bw2, row.y, bw2 + 1, row.h}, z.birlik, 15, 400, M->matn3, ONG);
-                gfx.matn({row.o() - 200, row.y, 200 - 18 - bw2, row.h}, son(z.miqdor), 15, 400, M->matn.shaffof(op), ONG);
+                float sb = z.qaytarilgan > 0 ? 30 : row.h;
+                gfx.matn({ox - 13 - bw2, row.y, bw2 + 1, sb}, z.birlik, 15, 400, M->matn3, ONG);
+                gfx.matn({ox - 200, row.y, 200 - 18 - bw2, sb}, son(z.miqdor), 15, 400, M->matn.shaffof(op), ONG);
+                if (z.qaytarilgan > 0)
+                    gfx.matn({ox - 260, row.y + 28, 247, 17}, son(z.qaytarilgan) + L" " + z.birlik + L" qaytarilgan", 12,
+                             400, M->matn2, ONG);
+                if (!s.bekor && z.miqdor > 1e-9 &&
+                    ui.tugma("sv/qy/" + std::to_string(z.id), {ox + 8, row.y + 8, TUG - 21, 34}, L"Qaytarish", TINCH,
+                             "i-kirim", true)) {
+                    qaytarish_och(true, z.id, J_SOTUVLAR, 0);
+                    sotuvdan_chiq = true;
+                    break;
+                }
             }
+            if (sotuvdan_chiq) break;
             cy += boy + 14;
         }
         ui.scroll_tugat();
     }
-    if (chek_oyna) chek_oynasi();
+    chek_oynasi_chiz();
 }

@@ -87,6 +87,9 @@ void ot(Joy j, long long p) {
         case J_KIRISH: kirish_ochildi(); break;
         case J_PRINTER: printer_ochildi(printer_kerak); break;
         case J_ETIKETKA: etiketka_ochildi(p); break;
+        case J_QAYTARISH: qaytarish_ochildi(p); break;
+        case J_CHEK_QAYTARISH: chek_qaytarish_ochildi(p); break;
+        case J_KASSALAR: kassalar_ochildi(p); break;
         case J_SOTUV: sotuv_ochildi(p); break;
         case J_QARZ_YOZ: qarz_yozish_ochildi(p); break;
         case J_QARZDORLAR: qarzdorlar_ochildi(p); break;
@@ -173,10 +176,12 @@ struct MenyuBand {
 static bool faolmi(Joy band) {
     switch (band) {
         case J_BOSH: return joriy == J_BOSH;
-        case J_SOTUV: return joriy == J_SOTUV || joriy == J_SOTUVLAR;
+        case J_SOTUV: return joriy == J_SOTUV || joriy == J_SOTUVLAR || joriy == J_CHEK_QAYTARISH ||
+                             (joriy == J_QAYTARISH && qaytarish_qaytadigan_joy() != J_KARTA);
         case J_HISOBOT: return joriy == J_HISOBOT;
         case J_QARZDORLAR:
-            return (joriy >= J_QARZDORLAR && joriy <= J_QIDIRISH) || joriy == J_QARZ_YOZ;
+            return (joriy >= J_QARZDORLAR && joriy <= J_QIDIRISH) || joriy == J_QARZ_YOZ ||
+                   (joriy == J_QAYTARISH && qaytarish_qaytadigan_joy() == J_KARTA);
         case J_OMBOR: return joriy == J_OMBOR || joriy == J_MAHSULOT || joriy == J_ETIKETKA || (joriy >= J_EXCEL && joriy <= J_QATOR);
         default: return joriy == band;
     }
@@ -299,7 +304,9 @@ static void chiz() {
             case J_YANGILANISHLAR: yangilanishlar_chiz(sahifa); break;
             case J_YANGILANISH: yangilanish_chiz(sahifa); break;
             case J_QATOR: qator_chiz(sahifa); break;
-            case J_KASSALAR: tayyorlanmoqda_chiz(sahifa, L"Kassalar", "i-savdo"); break;
+            case J_KASSALAR: kassalar_chiz(sahifa); break;
+            case J_QAYTARISH: qaytarish_chiz(sahifa); break;
+            case J_CHEK_QAYTARISH: chek_qaytarish_chiz(sahifa); chek_oynasi_chiz(); break;
             default: break;
         }
     }
@@ -435,7 +442,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     // Buyruq satri: --server (do'kon serveri), --baza <fayl>, --port <n>, --malumot <papka> (sinov)
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    wstring baza_arg, port_arg;
+    wstring baza_arg, port_arg, kassa_json;
     wstring malumot = papka(FOLDERID_LocalAppData) + L"\\Xozmag";
     for (int i = 1; i < argc; ++i) {
         wstring a = argv[i];
@@ -443,8 +450,15 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
         else if (i + 1 < argc && a == L"--baza") baza_arg = argv[++i];
         else if (i + 1 < argc && a == L"--port") port_arg = argv[++i];
         else if (i + 1 < argc && a == L"--malumot") malumot = argv[++i];
+        else if (i + 1 < argc && a == L"--kassa-ornat") kassa_json = argv[++i];  // 2-kassa paketi
     }
     LocalFree(argv);
+    if (!kassa_json.empty()) {
+        SHCreateDirectoryExW(nullptr, malumot.c_str(), nullptr);
+        ini_yoli = malumot + L"\\sozlama.ini";
+        ini_unicode();
+        return kassa_ornat(kassa_json);
+    }
     const wchar_t* sinf = server_rejim ? L"UlugbekXozmagServer" : L"UlugbekXozmag";
     HANDLE mutex = CreateMutexW(nullptr, TRUE, server_rejim ? L"Local\\UlugbekXozmagServer" : L"Local\\UlugbekXozmagExe");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -527,7 +541,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     while (GetMessageW(&msg, nullptr, 0, 0)) {
         bool ichida = GetAncestor(msg.hwnd, GA_ROOT) == hOyna;
         // skaner faqat kassa va ombor sahifalarida ushlanadi (saytdagi skaner.js kabi)
-        bool skaner_joy = joriy == J_SOTUV || joriy == J_QARZ_YOZ || joriy == J_OMBOR;
+        bool skaner_joy = joriy == J_SOTUV || joriy == J_QARZ_YOZ || joriy == J_OMBOR || joriy == J_CHEK_QAYTARISH;
         if (ichida && skaner_joy && msg.message == WM_CHAR && msg.wParam >= 32) {
             if (msg.time - skan_vaqt > 40 || skan.empty()) {
                 skan.clear();

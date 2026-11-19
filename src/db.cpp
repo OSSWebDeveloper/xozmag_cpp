@@ -833,8 +833,9 @@ bool chek_ol(long long sotuv_id, Chek& c) {
     c.naqd = s.son(1);
     c.naqd_d = s.son(2);
     c.bekor = s.butun(3) != 0;
-    Sorov q = baza.sor("SELECT mahsulot_nomi, birlik, miqdor - qaytarilgan, narx, valyuta FROM"
-                       " sotuv_sotuvqator WHERE sotuv_id=? ORDER BY id");
+    Sorov q = baza.sor("SELECT x.mahsulot_nomi, x.birlik, x.miqdor - x.qaytarilgan, x.narx, x.valyuta, x.id,"
+                       " x.qaytarilgan, COALESCE(m.kod,'') FROM sotuv_sotuvqator x LEFT JOIN ombor_mahsulot m"
+                       " ON m.id=x.mahsulot_id WHERE x.sotuv_id=? ORDER BY x.id");
     q.bog(1, sotuv_id);
     while (q.qator()) {
         ChekQator x;
@@ -844,6 +845,9 @@ bool chek_ol(long long sotuv_id, Chek& c) {
         x.narx_bor = q.bormi(3);
         x.narx = q.son(3);
         x.valyuta = q.matn(4);
+        x.id = q.butun(5);
+        x.qaytarilgan = q.son(6);
+        x.kod = q.matn(7);
         c.qatorlar.push_back(x);
     }
     Sorov z = baza.sor("SELECT q.jami - q.qaytarilgan_summa, q.jami_dollar -"

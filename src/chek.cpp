@@ -4,6 +4,8 @@
 #include <shlobj.h>
 #include <winspool.h>
 
+#include <algorithm>
+
 #include "ui.h"
 
 static int chek_eni() { return ini_qiymat(L"chek_eni", L"80") == L"58" ? 32 : 42; }
@@ -157,6 +159,35 @@ bool chek_chop(const Chek& c, wstring& xato, const wstring& tanlangan) {
         TextOutW(dc, 0, y, qator.c_str(), (int)qator.size());
         y += boy;
         qator.clear();
+    }
+    // Qaytarish uchun shtrix (saytdagi chek kabi): kod raqami va «Qaytarish uchun chekni saqlang.»
+    wstring kod = c.id > 0 ? savdo_chek_kodi(c.id) : L"";
+    Shtrix sh = shtrix_yasa(kod);
+    if (sh.eni) {
+        int dpy = GetDeviceCaps(dc, LOGPIXELSY);
+        int bal = std::max(1, std::min(sahifa_en / sh.eni, GetDeviceCaps(dc, LOGPIXELSX) / 80));
+        int shb = dpy * 12 / 25;  // ~12 mm
+        if (y + boy / 2 + shb + 2 * boy > sahifa_boy) {
+            EndPage(dc);
+            StartPage(dc);
+            SelectObject(dc, f);
+            SetBkMode(dc, TRANSPARENT);
+            y = 0;
+        }
+        y += boy / 2;
+        int chap = (sahifa_en - sh.eni * bal) / 2;
+        HBRUSH qora = (HBRUSH)GetStockObject(BLACK_BRUSH);
+        for (auto [bx, bw] : sh.chiziqlar) {
+            RECT r = {chap + bx * bal, y, chap + (bx + bw) * bal, y + shb};
+            FillRect(dc, &r, qora);
+        }
+        y += shb;
+        for (const wstring& s : {kod, wstring(L"Qaytarish uchun chekni saqlang.")}) {
+            SIZE o;
+            GetTextExtentPoint32W(dc, s.c_str(), (int)s.size(), &o);
+            TextOutW(dc, std::max(0, ((int)sahifa_en - (int)o.cx) / 2), y, s.c_str(), (int)s.size());
+            y += boy;
+        }
     }
     EndPage(dc);
     EndDoc(dc);

@@ -22,6 +22,8 @@ struct KartaQator {
     wstring nom, birlik;
     double qolgan = 0, qaytarilgan = 0;
     bool dollar = false;
+    long long id = 0;
+    bool sotuvdan = false;  // chekdan qarzga o'tgan hujjat: qator sotuv_sotuvqator da
 };
 struct KartaQarz {
     long long id = 0, sotuv_id = 0;

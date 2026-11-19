@@ -207,6 +207,12 @@ static wstring soat(long long t) {
 
 void server_chiz(R r) {
     ip_yangila();
+    // Kassalar bo'limida server IP sozlangan bo'lsa (va u kartada bo'lsa) — birinchi turadi
+    {
+        wstring s = kassalar_server_ip();
+        auto it = std::find_if(ip_lar.begin(), ip_lar.end(), [&](const wstring& x) { return x.rfind(s + L"\t", 0) == 0; });
+        if (!s.empty() && it != ip_lar.end() && it != ip_lar.begin()) std::rotate(ip_lar.begin(), it, it + 1);
+    }
     if (avto < 0) avto_tekshir();
     auto mijozlar = server_mijozlari();
     float en = std::min(760.f, r.w - 28);

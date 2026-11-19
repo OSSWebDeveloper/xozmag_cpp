@@ -76,12 +76,12 @@ bool hudud_ol(long long id, Hudud& h) {
     return true;
 }
 
-static std::vector<KartaQator> qatorlar_ol(const char* sql, long long id) {
+static std::vector<KartaQator> qatorlar_ol(const char* sql, long long id, bool sotuvdan) {
     std::vector<KartaQator> r;
     Sorov s = baza.sor(sql);
     s.bog(1, id);
     while (s.qator())
-        r.push_back({s.matn(0), s.matn(1), s.son(2) - s.son(3), s.son(3), s.matn(4) == L"dollar"});
+        r.push_back({s.matn(0), s.matn(1), s.son(2) - s.son(3), s.son(3), s.matn(4) == L"dollar", s.butun(5), sotuvdan});
     return r;
 }
 
@@ -109,13 +109,13 @@ std::vector<KartaQarz> karta_qarzlari(long long qarzdor_id) {
         r.push_back(k);
     }
     for (auto& k : r) {
-        k.q = qatorlar_ol("SELECT q.mahsulot_nomi, q.birlik, q.miqdor, q.qaytarilgan, COALESCE(m.valyuta,'')"
+        k.q = qatorlar_ol("SELECT q.mahsulot_nomi, q.birlik, q.miqdor, q.qaytarilgan, COALESCE(m.valyuta,''), q.id"
                           " FROM qarz_qarzqator q LEFT JOIN ombor_mahsulot m ON m.id=q.mahsulot_id"
-                          " WHERE q.qarz_id=? ORDER BY q.id", k.id);
+                          " WHERE q.qarz_id=? ORDER BY q.id", k.id, false);
         if (k.sotuv_id) {
             auto ch = qatorlar_ol("SELECT q.mahsulot_nomi, q.birlik, q.miqdor, q.qaytarilgan,"
-                                  " COALESCE(m.valyuta,'') FROM sotuv_sotuvqator q LEFT JOIN ombor_mahsulot m"
-                                  " ON m.id=q.mahsulot_id WHERE q.sotuv_id=? ORDER BY q.id", k.sotuv_id);
+                                  " COALESCE(m.valyuta,''), q.id FROM sotuv_sotuvqator q LEFT JOIN ombor_mahsulot m"
+                                  " ON m.id=q.mahsulot_id WHERE q.sotuv_id=? ORDER BY q.id", k.sotuv_id, true);
             k.q.insert(k.q.end(), ch.begin(), ch.end());
         }
     }

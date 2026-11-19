@@ -31,6 +31,22 @@ Server qaysi bazani ochadi:
 
 Jadvallar Django bilan aynan bir xil, shuning uchun exe va sayt bitta bazada ishlaydi.
 
+## Tovar qaytarish va Kassalar (v2.5.0 dan)
+
+**Tovar qaytarish** saytdagi bilan bir xil, qisman ham bo'ladi (20 qopdan 5 tasi):
+- Sotuvlar sahifasida har bir qatorda «Qaytarish»; «Chekni skanerlab qaytarish» — savdo
+  chekidagi shtrix (`88` + chek raqami + nazorat, saytdagi kabi) bo'yicha chekni topadi.
+- Chek oynasida «Mahsulot qaytarish»; chop etiladigan chekda endi qaytarish shtrixi bor.
+- Qarzdor kartasida qarz qatorlari va chekdan qarzga o'tgan qatorlar uchun «Qaytarish».
+- Tovar omborga qaytadi (tarixda «Qaytarish»). Chekda qarz bo'lsa pul avval shu qarzdan
+  ayriladi (ko'pi bilan qarzdorning hozirgi qarzicha), qolgani qo'lga.
+
+**Kassalar** (faqat server kompyuterida ochiladi): server IP, 2-kassa IP va tarmoq kartasi
+indeksi `qurilmalar_data\kassalar.json` ga saqlanadi (sayt formati). Sozlangan server IP
+server oynasida birinchi turadi. «2-kassa dasturini yuklab olish» ZIP beradi: 2-kassada
+`ORNATISH.bat` 2-kassa IP manzilini tarmoq kartasiga qo'shadi (saytdagi `kassa_ip.ps1`),
+dasturni `Program Files\Xozmag` ga qo'yadi va server manzilini yozadi.
+
 ## Etiketka va tarozi (v2.4.0 dan)
 
 **Etiketka** — rasta uchun narx yorlig'i, saytdagi bilan bir xil: nomi, sotish narxi,
@@ -81,7 +97,7 @@ so'ralsin» belgilangan bo'lsa. Kassada keyin «Qurilmalar → Barcha printerlar
 | Server–kassa: IP orqali ulanish, aloqa uzilsa qayta so'rash | v2.2.0 |
 | Ochilganda printerlar so'raladi (kassa ham, server ham) | v2.3.0 |
 | Etiketka (narx yorlig'i) va Rongta RLS1100C tarozi | v2.4.0 |
-| Tovar qaytarish, Kassalar | keyingi versiyalarda |
+| Tovar qaytarish (chek, chek shtrixi, qarz) va Kassalar | v2.5.0 |
 
 ## O'rnatish va yig'ish
 

@@ -209,8 +209,11 @@ bool sotuv_yakunla(const std::vector<SavatQator>& savat, double jami, double jam
 
 struct ChekQator {
     wstring nom, birlik, valyuta;
-    double miqdor = 0, narx = 0;
+    double miqdor = 0, narx = 0;  // miqdor — qaytarilganidan keyin qolgani
     bool narx_bor = false;
+    long long id = 0;             // sotuv_sotuvqator.id
+    double qaytarilgan = 0;
+    wstring kod;                  // tovar kodi
 };
 struct Chek {
     long long id = 0;

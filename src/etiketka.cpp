@@ -25,12 +25,7 @@ static const char* NAQSHLAR[107] = {
 };
 static const int JIM_ZONA = 10;
 
-struct Shtrix {
-    std::vector<std::pair<int, int>> chiziqlar;  // (boshlanishi, eni) modulda
-    int eni = 0;                                 // jim zonalar bilan
-};
-
-static Shtrix shtrix_yasa(const wstring& raqamlar) {
+Shtrix shtrix_yasa(const wstring& raqamlar) {
     Shtrix r;
     if (raqamlar.empty() || raqamlar.size() % 2 || !raqammi(raqamlar)) return r;
     std::vector<int> q = {105};
@@ -50,6 +45,20 @@ static Shtrix shtrix_yasa(const wstring& raqamlar) {
     }
     r.eni = x + JIM_ZONA;
     return r;
+}
+
+int ean_nazorat(const wstring& r) {
+    int y = 0;
+    for (size_t i = 0; i < r.size(); ++i) y += (r[i] - L'0') * (i % 2 ? 3 : 1);
+    return (10 - y % 10) % 10;
+}
+
+wstring savdo_chek_kodi(long long id) {
+    if (id < 1 || id > 999999999) return L"";
+    wchar_t b[16];
+    swprintf(b, 16, L"88%09lld", id);
+    wstring a = b;
+    return a + (wchar_t)(L'0' + ean_nazorat(a));
 }
 
 // Tovar kodi shtrixda 6 raqam (models.etiketka_kodi)

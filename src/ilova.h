@@ -11,7 +11,7 @@ enum Joy {
     J_QARZDORLAR, J_QARZDOR_ROYXAT, J_HUDUDLAR, J_HUDUD, J_KARTA, J_YANGI_QARZDOR, J_QIDIRISH,
     J_OMBOR, J_MAHSULOT, J_QURILMALAR, J_KASSALAR, J_AKKAUNT, J_QARZ_YOZ,
     J_EXCEL, J_YANGILANISHLAR, J_YANGILANISH, J_QATOR,
-    J_ULANISH, J_SERVER, J_PRINTER, J_ETIKETKA,
+    J_ULANISH, J_SERVER, J_PRINTER, J_ETIKETKA, J_QAYTARISH, J_CHEK_QAYTARISH,
     J_SONI
 };
 
@@ -49,6 +49,20 @@ int etiketka_soni(const Tovar& t, double miqdor, const wstring& birlik);
 void etiketka_och(long long tovar_id, int soni);
 void etiketka_ochildi(long long id);
 void etiketka_chiz(R r);
+// Tovar qaytarish (qaytarish.cpp): sotuv qatori (sotuvdan) yoki qarz qatori
+void qaytarish_och(bool sotuvdan, long long qator_id, Joy orqaga, long long orqaga_p);
+Joy qaytarish_qaytadigan_joy();  // qaysi sahifadan kelingan (menyu belgisi uchun)
+void qaytarish_ochildi(long long id);
+void qaytarish_chiz(R r);
+void chek_qaytarish_ochildi(long long sotuv_id);  // 0 — chek hali topilmagan
+void chek_qaytarish_chiz(R r);
+void chek_oynasini_och(long long sotuv_id);       // hisobot.cpp: chek oynasi (sotuv:chek)
+void chek_oynasi_chiz();
+// Kassalar (kassalar.cpp)
+void kassalar_ochildi(long long);
+void kassalar_chiz(R r);
+int kassa_ornat(const wstring& kassa_json);
+wstring kassalar_server_ip();                     // kassalar.json dagi server IP (bo'lmasa bo'sh)       // Xozmag.exe --kassa-ornat (2-kassa paketi)
 // Rongta tarozisi paneli (tarozi.cpp) — Qurilmalar sahifasida
 void tarozi_ochildi();
 float tarozi_panel(float x, float y, float w);  // chizilgan balandlik

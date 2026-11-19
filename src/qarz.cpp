@@ -281,14 +281,21 @@ float hujjat_chiz(const KartaQarz& q, float x, float y, float w, bool chiz) {
         auto& z = q.q[i];
         R t = {x, y + sar + i * qb, w, qb};
         if (i + 1 < q.q.size() || !q.yakunlangan) gfx.chiziq(t.x, t.p() - .5f, t.o(), t.p() - .5f, M->chegara);
+        const float TUG = 150;  // qaytarish tugmasi ustuni
         float nw = gfx.matn_eni(z.nom, 15, 400);
-        gfx.matn({t.x + 13, t.y, w - 260, t.h}, z.nom, 15, 400, M->matn);
-        if (z.dollar) ui.nishon(t.x + 13 + std::min(nw, w - 260) + 6, t.y + 15, L"$", M->tasdiq_fon, M->tasdiq_chek, M->tasdiq);
+        gfx.matn({t.x + 13, t.y, w - 260 - TUG, t.h}, z.nom, 15, 400, M->matn);
+        if (z.dollar) ui.nishon(t.x + 13 + std::min(nw, w - 260 - TUG) + 6, t.y + 15, L"$", M->tasdiq_fon, M->tasdiq_chek, M->tasdiq);
+        float ox = t.o() - TUG;
         float bw = gfx.matn_eni(z.birlik, 15, 400);
-        gfx.matn({t.o() - 13 - bw, t.y, bw + 1, z.qaytarilgan > 0 ? 30 : t.h}, z.birlik, 15, 400, M->matn3, ONG);
-        gfx.matn({t.o() - 200, t.y, 200 - 17 - bw, z.qaytarilgan > 0 ? 30 : t.h}, son(z.qolgan), 15, 400, M->matn, ONG);
+        gfx.matn({ox - 13 - bw, t.y, bw + 1, z.qaytarilgan > 0 ? 30 : t.h}, z.birlik, 15, 400, M->matn3, ONG);
+        gfx.matn({ox - 200, t.y, 200 - 17 - bw, z.qaytarilgan > 0 ? 30 : t.h}, son(z.qolgan), 15, 400, M->matn, ONG);
         if (z.qaytarilgan > 0)
-            gfx.matn({t.o() - 260, t.y + 28, 247, 17}, son(z.qaytarilgan) + L" " + z.birlik + L" qaytarilgan", 12, 400, M->matn2, ONG);
+            gfx.matn({ox - 260, t.y + 28, 247, 17}, son(z.qaytarilgan) + L" " + z.birlik + L" qaytarilgan", 12, 400, M->matn2, ONG);
+        // Qaytarish: qarz qatori — yakunlangan hujjatdan; chekdagi qator — pul avval shu qarzdan ayriladi
+        if ((z.sotuvdan || q.yakunlangan) && z.qolgan > 1e-9 &&
+            ui.tugma(string("kr/qy/") + (z.sotuvdan ? "s" : "q") + std::to_string(z.id), {ox + 8, t.y + 8, TUG - 21, 34},
+                     L"Qaytarish", TINCH, "i-kirim", true))
+            qaytarish_och(z.sotuvdan, z.id, J_KARTA, karta_id);
     }
     if (!q.yakunlangan) {
         R t = {x + 13, r.p() - 46, 160, 34};
