@@ -174,11 +174,13 @@ void royxat_chiz(R r) {
             }
             son_ustun(c[k++], x.q.balans, x.q.balans_d, true, M->matn);
             R bt = {c[k].x + 13, t.y + 11, c[k].w - 26, 34};
+            // Qator bosilishi tugmadan oldin so'raladi — aks holda qator tugmaning bosilishini oladi
+            bool qator_bos = ui.bosildi("qz/r/q/" + std::to_string(x.q.id), t);
             if (ui.tugma("qz/r/qy/" + std::to_string(x.q.id), bt, L"Qarz yozish", YASHIL, nullptr, true)) {
                 ot(J_QARZ_YOZ, ochiq_qarz(x.q.id, foydalanuvchi.id));
                 break;
             }
-            if (ui.bosildi("qz/r/q/" + std::to_string(x.q.id), t)) {
+            if (qator_bos) {
                 ot(J_KARTA, x.q.id);
                 break;
             }

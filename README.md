@@ -31,6 +31,31 @@ Server qaysi bazani ochadi:
 
 Jadvallar Django bilan aynan bir xil, shuning uchun exe va sayt bitta bazada ishlaydi.
 
+## Sayt bilan to'liq tenglashtirish (v2.6.0)
+
+- **Qurilmalar** sahifasi saytdagi «Yangi ulangan qurilmalar» tartibida: «Shu kassa», chek printeri
+  («Sinov savdo yaratmaydi…»), Rongta tarozi, **«Skaner va etiketkani sinash»** (kod, do'kon/tarozi
+  etiketkasi yoki chek shtrixi — savdo yaratmaydi) va **USB qurilmalar** ro'yxati: har 10 soniyada
+  tekshiriladi, yangi ulangani «Yangi», uzilgani xabarda. Saralash qoidalari saytdagi
+  `config/qurilmalar.py` bilan bir xil; nomlar ham saytdagidek (sinovda 294 ta qurilmaning hammasi mos).
+  Saytdagi «USB kassa yordamchisi» exe'ga kerak emas — chek to'g'ridan-to'g'ri printerga chiqadi.
+- **Login / Parol**: Django'ning parol qoidalari — kamida 8 belgi, keng tarqalgan 20 000 parol
+  ro'yxati, faqat raqam emas, loginga o'xshamasin. Standart parolli `server`/`kassa` akkauntida
+  «Xavfsizlik uchun standart parolni o'zgartirish tavsiya etiladi.» Kirishda xato qizil qutida:
+  «Login yoki parol xato.»
+- **Qoldiqni tuzatish** oynasi saytdagidek: «Hozirgi qoldiq», «Yangi qoldiq», «Sabab (ixtiyoriy)»;
+  o'zgarmagan qoldiq qabul qilinmaydi, shu orada boshqa kassa o'zgartirgan bo'lsa bosib ketilmaydi;
+  tarixga «Qoldiq: 13,5 → 12 kg. sabab» yoziladi.
+- **Shtrix kod**: 8/12/13/14 raqam; tarozi (13 xonali `2…`) va chek (`77…`, `88…`) prefikslari band.
+  Boshqa oynada o'zgartirilgan shtrix bosib ketilmaydi.
+- **Tovar formasi**: xarid narxi manfiy bo'lmasin, olish birligi sotuv birligi bilan bir xil bo'lmasin,
+  saytdagi xabarlar; yangi tovarda «… skladga qo'shildi — 300 metr = 3 rulon.»
+- **Hududlar**: ortiqcha bo'shliqlar olib tashlanadi, katta-kichik harfdan qat'i nazar takror bo'lmaydi.
+- Sotuvlar: sotuvsiz kunda «Bu kuni sotuv bo'lmagan» va «Yangi sotuv boshlash». Hisobotda 500 tadan
+  ko'p chek bo'lsa izoh.
+- Tuzatilgan xatolar: Ombor qatoridagi «Tuzatish» va Qarzdorlar ro'yxatidagi «Qarz yozish» tugmalarini
+  qator bosilishi «yutib» yuborardi; kun almashtirilganda Sotuvlar sarlavhasi eski kunda qolardi.
+
 ## Tovar qaytarish va Kassalar (v2.5.0 dan)
 
 **Tovar qaytarish** saytdagi bilan bir xil, qisman ham bo'ladi (20 qopdan 5 tasi):
@@ -93,11 +118,12 @@ so'ralsin» belgilangan bo'lsa. Kassada keyin «Qurilmalar → Barcha printerlar
 | Excel: yuklab olish, shablon, Excel'dan yangilash (qoralama/qo'llash/bekor), Yangilanishlar | saytdagidek (v2.1.0) |
 | Sotuvlar (kunlik cheklar), Hisobot | saytdagidek |
 | Login / Parol | saytdagidek |
-| Qurilmalar | chek va etiketka printeri, Rongta tarozi (Ethernet) |
+| Qurilmalar («Yangi ulangan qurilmalar»): shu kassa, chek printeri, Rongta tarozi, skaner sinovi, USB qurilmalar | saytdagidek (v2.6.0) |
 | Server–kassa: IP orqali ulanish, aloqa uzilsa qayta so'rash | v2.2.0 |
 | Ochilganda printerlar so'raladi (kassa ham, server ham) | v2.3.0 |
 | Etiketka (narx yorlig'i) va Rongta RLS1100C tarozi | v2.4.0 |
 | Tovar qaytarish (chek, chek shtrixi, qarz) va Kassalar | v2.5.0 |
+| Sayt bilan to'liq tenglashtirish: parol qoidalari, qoldiq tuzatish, shtrix/tovar/hudud tekshiruvlari | v2.6.0 |
 
 ## O'rnatish va yig'ish
 

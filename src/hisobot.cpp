@@ -108,7 +108,8 @@ void hisobot_chiz(R r) {
     float qb = 44;
     float t1 = 38 + std::max(1, (int)hb.kassalar.size()) * qb;
     float t2 = 38 + std::max(1, (int)hb.cheklar.size()) * qb;
-    float kontent = 46 + 30 + (14 + 2 * (22 + 50) + 10 + 14) + 14 + (14 + 30 + 3 * 24 + 30 + t1 + 14 + 30 + t2 + 14);
+    float kontent = 46 + 30 + (14 + 2 * (22 + 50) + 10 + 14) + 14 + (14 + 30 + 3 * 24 + 30 + t1 + 14 + 30 + t2 + 14) +
+                    (hb.soni > 500 ? 34 : 0);
     ui.scroll("hs/sahifa", r, kontent);
     R s = {r.x, r.y, r.w - 12, r.h};
     sarlavha(s, L"Hisobot — kassa savdolari");
@@ -192,6 +193,9 @@ void hisobot_chiz(R r) {
         gfx.chiziq(x, y + qb - .5f, x + w, y + qb - .5f, M->chegara);
         y += qb;
     }
+    if (hb.soni > 500)
+        gfx.matn({x, y + 10, w, 20}, L"Faqat oxirgi 500 ta chek ko'rsatildi; jami hisob barcha cheklar bo'yicha.", 13, 400,
+                 M->matn2);
     ui.scroll_tugat();
     chek_oynasi_chiz();
 }
@@ -250,7 +254,10 @@ void sotuvlar_chiz(R r) {
     float kb = gfx.matn_eni(L"Ko'rsatish", 15, 600) + 36;
     gfx.matn({fx, y + 92 - 50 - 22, formw, 17}, L"Kunni tanlang", 12, 600, M->matn2);
     sana_maydon("sv/kun", {fx, y + 92 - 50, formw - kb - 14, 50});
-    if (ui.tugma("sv/kor", {fx + formw - kb, y + 92 - 50, kb, 50}, L"Ko'rsatish") || ui.enter("sv/kun")) sotuvlar_yukla();
+    if (ui.tugma("sv/kor", {fx + formw - kb, y + 92 - 50, kb, 50}, L"Ko'rsatish") || ui.enter("sv/kun")) {
+        sotuvlar_yukla();
+        ui.qayta = true;  // sarlavha va ko'rsatkichlar shu kadrda eski kun bilan chizilgan
+    }
     y += 92 + 14;
     float bw = gfx.matn_eni(L"Bosh sahifa", 15, 600) + 36 + 27;
     if (ui.tugma("sv/yangi", {x, y, w - bw - 14, 50}, L"Yangi sotuv", YASHIL, "i-plus")) ot(J_SOTUV);
@@ -261,8 +268,11 @@ void sotuvlar_chiz(R r) {
     float jami = 0;
     for (auto& s : ks.s) jami += chek_boyi(s) + 14;
     if (ks.s.empty()) {
-        quti({ch.x, ch.y, ch.w, 200});
-        bosh_holat({ch.x, ch.y, ch.w, 200}, "i-chek", L"Bu kunda sotuv yo'q", L"");
+        quti({ch.x, ch.y, ch.w, 240});
+        bosh_holat({ch.x, ch.y, ch.w, 190}, "i-savdo", L"Bu kuni sotuv bo'lmagan", L"");
+        float yb = gfx.matn_eni(L"Yangi sotuv boshlash", 15, 600) + 36;
+        if (ui.tugma("sv/bosh_yangi", {ch.x + (ch.w - yb) / 2, ch.y + 170, yb, 50}, L"Yangi sotuv boshlash", YASHIL))
+            ot(J_SOTUV);
     } else {
         ui.scroll("sv/cheklar", ch, jami - 14);
         float cy = ch.y, cw = ch.w - 12;

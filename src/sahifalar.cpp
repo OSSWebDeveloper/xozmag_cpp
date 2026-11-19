@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <map>
+#include <string_view>
 // Umumiy bezaklar va kichik sahifalar: Kirish, Bosh, Login/Parol.
 #include "ilova.h"
 #include "aloqa.h"
@@ -13,6 +16,19 @@ void sarlavha(R& r, const wstring& matn, const wstring& kichik) {
         gfx.matn({r.x + en + 10, r.y, r.w - en - 10, 29}, kichik, 15, 400, M->matn2, CHAP, 2);
     r.y += 32 + 14;
     r.h -= 32 + 14;
+}
+
+// .xabar ichki bloki (warning/error/info)
+float ichki_xabar(R r, const wstring& matn, XabarTur tur, bool olchash) {
+    float boy = std::max(40.f, gfx.matn_boyi(matn, 13, 500, r.w - 49) + 18);
+    if (olchash) return boy;
+    Rang fon = M->ogoh_fon, ch = M->ogoh_chek, rg = M->kechki ? hex("#ffd382") : M->ogoh;
+    if (tur == X_XATO) { fon = M->xato_fon; ch = M->xato_chek; rg = M->kechki ? hex("#ffc2c2") : hex("#a01b12"); }
+    if (tur == X_INFO) { fon = M->kok_fon; ch = M->kok_chek; rg = M->kechki ? hex("#a9dcf5") : hex("#0a5680"); }
+    gfx.quti({r.x, r.y, r.w, boy}, fon, 9, ch);
+    gfx.ikon(tur == X_INFO ? "i-quti" : "i-ogoh", {r.x + 12, r.y + 11, 16, 16}, rg);
+    gfx.matn({r.x + 37, r.y + 9, r.w - 49, boy - 18}, matn, 13, 500, rg, CHAP, 0, true);
+    return boy;
 }
 
 void quti(R r) { gfx.quti(r, M->panel, 12, M->chegara); }
@@ -88,6 +104,8 @@ void kirish_chiz(R r) {
     bool yangi = kirish_soni == 0;
     float en = std::min(380.f, r.w - 28);
     float boy = yangi ? 550 : 440;
+    float xh = kirish_xato.empty() ? 0 : ichki_xabar({0, 0, en - 52, 0}, kirish_xato, X_XATO, true) + 14;
+    boy += xh;
     R q = {r.x + (r.w - en) / 2, r.y + (r.h - boy) / 2 - 20, en, boy};
     gfx.quti({q.x, q.y + 10, q.w, q.h}, {0, 0, 0, M->kechki ? .3f : .1f}, 14);
     gfx.quti(q, M->panel, 12, M->chegara);
@@ -101,6 +119,7 @@ void kirish_chiz(R r) {
     gfx.matn({x, y, w, 18}, yangi ? L"Birinchi foydalanuvchini yarating" : L"Davom etish uchun kiring",
              13, 400, M->matn2, MARKAZ);
     y += 18 + 16;
+    if (xh > 0) y += ichki_xabar({x, y, w, 0}, kirish_xato, X_XATO) + 14;
     auto yorliq = [&](const wchar_t* t) {
         gfx.matn({x, y, w, 17}, t, 12, 600, M->matn2);
         y += 17 + 5;
@@ -121,10 +140,6 @@ void kirish_chiz(R r) {
     if (birinchi_yuklash) {
         ui.fokus("kirish/login");
         birinchi_yuklash = false;
-    }
-    if (!kirish_xato.empty()) {
-        gfx.matn({x, y - 10, w, 18}, kirish_xato, 12, 500, M->kechki ? hex("#ffa0a0") : M->xato);
-        y += 10;
     }
     bool bos = ui.tugma("kirish/tugma", {x, y, w, 50}, yangi ? L"Yaratish va kirish" : L"Kirish", YASHIL);
     if (ui.enter("kirish/login")) ui.fokus("kirish/parol");
@@ -223,17 +238,98 @@ void bosh_chiz(R r) {
 // ======================= Login / Parol =======================
 
 static wstring ak_xato[4];
+static bool ak_majburiy = false;  // standart parol (akkaunt.boshlangich_parol)
+
+// ---- Django AUTH_PASSWORD_VALIDATORS (saytdagi settings.py) ----
+static wstring kichik_harf(wstring s) {
+    if (!s.empty()) CharLowerBuffW(s.data(), (DWORD)s.size());
+    return s;
+}
+
+// UserAttributeSimilarityValidator (max_similarity 0.7, SequenceMatcher.quick_ratio)
+static bool loginga_oxshash(const wstring& parol_, const wstring& login) {
+    const double MAX = 0.7;
+    wstring parol = kichik_harf(parol_), qiymat = kichik_harf(login);
+    std::vector<wstring> qismlar;
+    wstring joriy;
+    for (wchar_t c : qiymat) {
+        if (IsCharAlphaNumericW(c) || c == L'_') joriy += c;
+        else { qismlar.push_back(joriy); joriy.clear(); }
+    }
+    qismlar.push_back(joriy);
+    qismlar.push_back(qiymat);
+    for (auto& q : qismlar) {
+        double pl = (double)parol.size(), ql = (double)q.size();
+        if (pl >= 10 * ql && ql < MAX / 2 * pl) continue;  // exceeds_maximum_length_ratio
+        std::map<wchar_t, int> sanoq;
+        for (wchar_t c : q) ++sanoq[c];
+        int mos = 0;
+        for (wchar_t c : parol) {
+            auto it = sanoq.find(c);
+            if (it != sanoq.end() && it->second > 0) { --it->second; ++mos; }
+        }
+        double nisbat = pl + ql ? 2.0 * mos / (pl + ql) : 1.0;
+        if (nisbat >= MAX) return true;
+    }
+    return false;
+}
+
+// CommonPasswordValidator: password.lower().strip() ro'yxatda bo'lmasin
+static bool oddiy_parolmi(const wstring& parol) {
+    static string matn = resurs_matni(204);
+    static std::vector<std::string_view> royxat;
+    if (royxat.empty()) {
+        size_t b = 0;
+        while (b < matn.size()) {
+            size_t e = matn.find(char(10), b);
+            if (e == string::npos) e = matn.size();
+            size_t o = e;
+            if (o > b && matn[o - 1] == '\r') --o;  // git CRLF qilib chiqargan bo'lsa ham
+            if (o > b) royxat.emplace_back(matn.data() + b, o - b);
+            b = e + 1;
+        }
+    }
+    string k = U(kichik_harf(tozala(parol)));
+    return std::binary_search(royxat.begin(), royxat.end(), std::string_view(k));
+}
+
+// validate_password(parol, user) — xatolar bitta qatorda
+static wstring parol_tekshiruvi(const wstring& parol, const wstring& login) {
+    std::vector<wstring> x;
+    if (loginga_oxshash(parol, login)) x.push_back(L"Parol login bilan juda o'xshash.");
+    if (parol.size() < 8) x.push_back(L"Parol juda qisqa. Kamida 8 belgidan iborat bo'lishi kerak.");
+    if (oddiy_parolmi(parol)) x.push_back(L"Bu parol juda oddiy (keng tarqalgan).");
+    bool raqam = !parol.empty();
+    for (wchar_t c : parol) if (!iswdigit(c)) raqam = false;
+    if (raqam) x.push_back(L"Parol faqat raqamlardan iborat bo'lmasin.");
+    wstring r;
+    for (auto& s : x) r += (r.empty() ? L"" : L" ") + s;
+    return r;
+}
 
 void akkaunt_ochildi(long long) {
     ui.maydonlarni_tozala("akk/");
     ui.qiymat_qoy("akk/login", foydalanuvchi.login);
     for (auto& x : ak_xato) x.clear();
+    ak_majburiy = false;
+    if (foydalanuvchi.login == L"server" || foydalanuvchi.login == L"kassa") {
+        Foydalanuvchi tek;
+        wstring x;
+        ak_majburiy = kirish_tekshir(foydalanuvchi.login, foydalanuvchi.login, tek, x, false);
+    }
 }
 
 void akkaunt_chiz(R r) {
     float en = std::min(660.f, r.w);
     R s = {r.x + (r.w - en) / 2, r.y, en, r.h};
     sarlavha(s, L"Login va parolni o'zgartirish");
+    if (ak_majburiy) {
+        const wchar_t* m = L"Xavfsizlik uchun standart parolni o'zgartirish tavsiya etiladi.";
+        float mh = std::max(40.f, gfx.matn_boyi(m, 13, 500, s.w - 24) + 18);
+        gfx.quti({s.x, s.y, s.w, mh}, M->panel, 9, M->chegara);
+        gfx.matn({s.x + 12, s.y + 9, s.w - 24, mh - 18}, m, 13, 500, M->matn, CHAP, 0, true);
+        s.y += mh + 16;
+    }
     const wchar_t* yorliqlar[4] = {L"Yangi login", L"Hozirgi parol", L"Yangi parol", L"Yangi parolni takrorlang"};
     const char* idlar[4] = {"akk/login", "akk/eski", "akk/yangi1", "akk/yangi2"};
     float boy = 14 * 2 + 4 * (17 + 5 + 50 + 16) + 50;
@@ -269,7 +365,7 @@ void akkaunt_chiz(R r) {
     if (!y1.empty() && (y1 == L"server" || y1 == L"kassa" || y1 == login))
         ak_xato[2] = L"Standart login/paroldan foydalanmang.";
     else if (!y1.empty() && y1 == eski) ak_xato[2] = L"Yangi parol eskisidan farq qilishi kerak.";
-    else if (!y1.empty() && y1.size() < 8) ak_xato[2] = L"Parol juda qisqa. Kamida 8 belgidan iborat bo'lishi kerak.";
+    else if (!y1.empty()) ak_xato[2] = parol_tekshiruvi(y1, foydalanuvchi.login);
     for (auto& e : ak_xato) if (!e.empty()) return;
     wstring x2;
     Foydalanuvchi tek;
@@ -402,6 +498,7 @@ static float q_tarozi_boy = 600;
 void qurilmalar_ochildi(long long) {
     ui.scroll_tepaga("qr/s");
     tarozi_ochildi();
+    qurilma_royxat_ochildi();
     q_printerlar = {L"— Chek chop etilmasin —"};
     for (auto& p : printerlar()) q_printerlar.push_back(p);
     wstring joriy = ini_qiymat(L"chek_printer");
@@ -419,14 +516,23 @@ void qurilmalar_ochildi(long long) {
 }
 
 void qurilmalar_chiz(R r) {
-    float en = std::min(900.f, r.w);
+    float en = std::min(1100.f, r.w);
     R s = {r.x + (r.w - en) / 2, r.y, en, r.h};
-    sarlavha(s, L"Qurilmalar", L"printerlar va tarozi");
-    R q = {s.x, s.y, s.w - 12, 14 + 4 * (22 + 50 + 14) + 50 + 14};
-    // Sahifa aylantiriladi: printerlar, ostida Ethernet tarozi
-    ui.scroll("qr/s", {s.x, s.y, s.w, s.h}, q.h + 14 + q_tarozi_boy + 4);
+    sarlavha(s, L"Yangi ulangan qurilmalar");
+    // Saytdagi tartib: shu kassa, chek printeri, Ethernet tarozi, skaner sinovi, USB qurilmalar
+    float pw = s.w - 12;
+    float h_kassa = shu_kassa_panel(0, 0, pw, false);
+    const wchar_t* sinov_izoh = L"Sinov savdo yaratmaydi va ombor qoldig\u2018ini o\u2018zgartirmaydi.";
+    float q_boy = 14 + 26 + 10 + 4 * (22 + 50 + 14) + 50 + 10 + 20 + 14;
+    float h_skan = skaner_panel(0, 0, pw, false), h_usb = usb_panel(0, 0, pw, false);
+    ui.scroll("qr/s", {s.x, s.y, s.w, s.h},
+              h_kassa + 14 + q_boy + 14 + q_tarozi_boy + 14 + h_skan + 14 + h_usb + 4);
+    shu_kassa_panel(s.x, s.y, pw, true);
+    R q = {s.x, s.y + h_kassa + 14, pw, q_boy};
     quti(q);
     float x = q.x + 14, w = q.w - 28, y = q.y + 14;
+    gfx.matn({x, y, w, 26}, L"Chek printeri", 20, 700, M->matn);
+    y += 26 + 10;
     gfx.matn({x, y, w, 17}, L"Chek printeri (yakunlangan chek shu printerga avtomatik chiqadi)", 12, 600, M->matn2);
     y += 22;
     if (ui.tanlov("qr/printer", {x, y, w, 50}, q_printerlar, q_printer))
@@ -458,6 +564,7 @@ void qurilmalar_chiz(R r) {
         else ui.xabar(xato, X_XATO);
     }
     if (ui.tugma("qr/hammasi", {x + 236, y, 260, 50}, L"Barcha printerlar", ODDIY, "i-printer")) ot(J_PRINTER);
+    gfx.matn({x, y + 50 + 10, w, 20}, sinov_izoh, 14, 400, M->matn2);
     R t = {q.x, q.p() + 14, q.w, q_tarozi_boy};
     quti(t);
     float b = tarozi_panel(t.x, t.y, t.w);
@@ -465,5 +572,9 @@ void qurilmalar_chiz(R r) {
         q_tarozi_boy = b;
         ui.qayta = true;
     }
+    float yy = t.p() + 14;
+    skaner_panel(s.x, yy, pw, true);
+    yy += h_skan + 14;
+    usb_panel(s.x, yy, pw, true);
     ui.scroll_tugat();
 }

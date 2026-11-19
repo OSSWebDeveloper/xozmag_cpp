@@ -66,6 +66,11 @@ wstring kassalar_server_ip();                     // kassalar.json dagi server I
 // Rongta tarozisi paneli (tarozi.cpp) — Qurilmalar sahifasida
 void tarozi_ochildi();
 float tarozi_panel(float x, float y, float w);  // chizilgan balandlik
+// qurilma_royxat.cpp — Qurilmalar sahifasining saytdagi qismlari (chiz=false: faqat balandlik)
+void qurilma_royxat_ochildi();
+float shu_kassa_panel(float x, float y, float w, bool chiz);
+float skaner_panel(float x, float y, float w, bool chiz);
+float usb_panel(float x, float y, float w, bool chiz);
 
 // Sahifa funksiyalari (har biri o'z .cpp faylida)
 void kirish_chiz(R r);
@@ -113,6 +118,8 @@ void ombor_eskirdi();  // tovarlar o'zgardi — kassa qidiruvi qayta o'qisin
 void sarlavha(R& r, const wstring& matn, const wstring& kichik = L"");  // .sarlavha, r ni pastga suradi
 void quti(R r);                                // .quti foni
 void bosh_holat(R r, const char* ikon, const wstring& b, const wstring& matn);
+// .xabar ichki bloki (ogoh/xato/info); olchash=true — faqat balandligi
+float ichki_xabar(R r, const wstring& matn, XabarTur tur, bool olchash = false);
 // .kiritish-maydon / .tolov-maydon: chapda nomi, o'ngda qiymat (EDIT) va birlik
 HWND tolov_maydon(const string& id, R r, const wstring& nomi, const wstring& birlik,
                   float olcham, Rang chegara = {}, Rang nom_rang = {}, bool faol = false);

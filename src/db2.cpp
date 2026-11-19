@@ -77,7 +77,7 @@ bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f
                        " WHERE username=?");
     s.bog(1, tozala(login));
     // Django xabari bilan bir xil: qaysi biri xato ekani aytilmaydi
-    xato = L"Login yoki parol noto'g'ri.";
+    xato = L"Login yoki parol xato.";
     if (!s.qator() || !s.butun(4)) return false;
     if (!parol_mos(parol, s.matnU(2))) return false;
     f.id = s.butun(0);

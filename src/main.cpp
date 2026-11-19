@@ -393,6 +393,10 @@ static LRESULT CALLBACK jarayon(HWND h, UINT m, WPARAM w, LPARAM l) {
             if (HIWORD(w) == EN_SETFOCUS || HIWORD(w) == EN_KILLFOCUS) InvalidateRect(h, nullptr, FALSE);
             return 0;
         case WM_TIMER:
+            if (w == 82 && joriy != J_QURILMALAR) {  // USB qurilmalar ro'yxati faqat o'z sahifasida
+                KillTimer(h, 82);
+                return 0;
+            }
             if (w == 79) {  // har 5 soniyada server tirikligini tekshirish
                 if (!server_rejim && !tirikmi()) InvalidateRect(h, nullptr, FALSE);
                 return 0;

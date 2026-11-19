@@ -88,7 +88,8 @@ struct OmborFiltr {
 void ombor_keshini_tashla();
 std::vector<const OmborTovar*> ombor_filtrla(const OmborFiltr& f);
 long long tugagan_soni();
-bool shtrix_saqla(long long id, const wstring& kod, wstring& xato);
+bool shtrix_saqla(long long id, const wstring& kod, wstring& xato, const wstring* eski = nullptr);
+wstring shtrix_xatosi(const wstring& kod);  // bo'sh — to'g'ri
 
 // Sana: "18.11.2026" <-> SYSTEMTIME
 bool sana_oqi(const wstring& s, SYSTEMTIME& t);

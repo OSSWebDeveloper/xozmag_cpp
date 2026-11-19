@@ -287,11 +287,30 @@ long long tugagan_soni() {
     return s.qator() ? s.butun(0) : 0;
 }
 
-bool shtrix_saqla(long long id, const wstring& kod, wstring& xato) {
+// Saytdagi MahsulotForm.clean_shtrix_kod bilan bir xil
+wstring shtrix_xatosi(const wstring& kod) {
     wstring k = tozala(kod);
-    if (!k.empty() && (!raqammi(k) || k.size() > 14)) {
-        xato = L"Shtrix kod faqat raqamlardan iborat bo'lsin (14 tagacha).";
-        return false;
+    if (k.empty()) return L"";
+    bool ascii = true;
+    for (wchar_t c : k) if (c < L'0' || c > L'9') ascii = false;
+    if (!ascii || (k.size() != 8 && k.size() != 12 && k.size() != 13 && k.size() != 14))
+        return L"Shtrix kod 8, 12, 13 yoki 14 ta raqamdan iborat bo‘lsin.";
+    if ((k.size() == 13 && k[0] == L'2') || (k.size() == 12 && (k.rfind(L"77", 0) == 0 || k.rfind(L"88", 0) == 0)))
+        return L"Bu prefiks tarozi yoki chek kodlari uchun ajratilgan.";
+    return L"";
+}
+
+bool shtrix_saqla(long long id, const wstring& kod, wstring& xato, const wstring* eski) {
+    wstring k = tozala(kod);
+    xato = shtrix_xatosi(k);
+    if (!xato.empty()) return false;
+    if (eski) {
+        Sorov s = baza.sor("SELECT COALESCE(shtrix_kod,'') FROM ombor_mahsulot WHERE id=?");
+        s.bog(1, id);
+        if (!s.qator() || s.matn(0) != tozala(*eski)) {
+            xato = L"Shtrix kod boshqa oynada o‘zgartirilgan. Sahifani yangilang.";
+            return false;
+        }
     }
     try {
         Sorov s = baza.sor("UPDATE ombor_mahsulot SET shtrix_kod=? WHERE id=?");
@@ -300,7 +319,7 @@ bool shtrix_saqla(long long id, const wstring& kod, wstring& xato) {
         ombor_keshini_tashla();
         return true;
     } catch (const BazaXato&) {
-        xato = L"Bu shtrix kod boshqa tovarda bor.";
+        xato = L"Bu shtrix kod boshqa mahsulotga berilgan.";
         return false;
     }
 }

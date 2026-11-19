@@ -50,6 +50,7 @@ public:
     Sorov& bog(int i, long long v);
     Sorov& bog(int i, int v) { return bog(i, (long long)v); }
     Sorov& bosh(int i);
+    Sorov& bog_ixtiyoriy(int i, bool bor, double v) { return bor ? bog(i, v) : bosh(i); }  // yo'q bo'lsa NULL
 
     bool qator();     // keyingi qator bo'lsa true
     void bajar();     // natijasiz so'rov
@@ -143,11 +144,12 @@ bool tovar_ol(long long id, Tovar& t);
 // Kassadagi yagona qidiruv: kod (27 = 0027), eski 5/6/10 xonali etiketka,
 // tarozi shtrixi (13 raqam, "2" bilan; ichida og'irlik). miqdor < 0 — kod miqdor aytmadi.
 bool kod_bilan_top(const wstring& kirish, Tovar& t, double& miqdor, wstring& xato);
-long long tovar_saqla(const Tovar& t, double boshlangich_qoldiq, wstring& xato);
+long long tovar_saqla(const Tovar& t, double boshlangich_qoldiq, wstring& xato, double qadoq = 0);
 void tovar_faol(long long id, bool faol);
 void kirim_qil(long long id, double miqdor, double kiritilgan, const wstring& kiritilgan_birlik,
                const wstring& izoh);
 void qoldiq_tuzat(long long id, double yangi, const wstring& izoh);
+bool qoldiq_tuzatish(long long id, double eski, double yangi, const wstring& sabab, wstring& xato);
 
 struct Harakat {
     wstring sana, tur, miqdor, izoh;

@@ -12,6 +12,8 @@
 201 RCDATA "sayt/ikonlar.html"
 202 RCDATA "sayt/bosh-fon.jpg"
 203 RCDATA "sayt/bosh-kunduzgi.svg"
+// Django'ning common-passwords ro'yxati (CommonPasswordValidator), saralangan, kichik harfda
+204 RCDATA "sayt/oddiy_parollar.txt"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION VER_A,VER_B,VER_C,0

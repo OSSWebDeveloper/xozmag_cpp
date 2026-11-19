@@ -15,6 +15,9 @@ const int SAHIFADA = 50;
 long long tugagan = 0;
 // oynalar
 long long kirim_id = 0, tuzat_id = 0, tarix_id = 0, shtrix_id = 0;
+double tuzat_eski = 0;     // oyna ochilgandagi qoldiq (saytdagi eski_qoldiq)
+wstring shtrix_eski;       // oyna ochilgandagi shtrix (saytdagi «eski»)
+wstring tuzat_xato;
 int kirim_birlik = 0;  // 0 — sotuv birligi, 1 — olish birligi
 std::vector<Harakat> tarix;
 
@@ -116,42 +119,63 @@ void kirim_oynasi() {
     }
 }
 
-// ---------- Qoldiqni tuzatish ----------
+// ---------- Qoldiqni tuzatish (qoldiq_tuzatish.html) ----------
 void tuzat_oynasi() {
     Tovar t;
     if (!tovar_ol(tuzat_id, t)) { tuzat_id = 0; return; }
     bool yop = false;
-    R o = oyna("om/t", L"Qoldiqni tuzatish — " + t.nom, 620, 58 + 14 + 92 + 14 + 2 * (22 + 50 + 14) + 50 + 14, yop);
+    float ichw = 620 - 28;
+    wstring izoh1 = L"Qolgan yaroqli mahsulot miqdorini " + t.birlik +
+                    L" hisobida kiriting. Masalan, 10 tadan 2 tasi singan bo\u2018lsa, yangi qoldiq 8 bo\u2018ladi.";
+    wstring izoh2 = L"Sababni bo\u2018sh qoldirish mumkin. Oldingi va yangi qoldiq harakatlar tarixiga yoziladi.";
+    float h1 = gfx.matn_boyi(izoh1, 14, 400, ichw), h2 = gfx.matn_boyi(izoh2, 14, 400, ichw);
+    float xh = tuzat_xato.empty() ? 0 : ichki_xabar({0, 0, ichw, 0}, tuzat_xato, X_XATO, true) + 14;
+    R o = oyna("om/t", L"Qoldiqni tuzatish \u2014 " + t.nom, 620,
+               58 + 14 + 92 + 14 + h1 + 14 + xh + 2 * (22 + 50 + 14) + h2 + 14 + 50 + 14, yop);
     if (yop) { tuzat_id = 0; return; }
     R b = o.ichki(14);
     float y = b.y;
-    korsatkich({b.x, y, b.w, 92}, L"BAZADAGI QOLDIQ", son(t.qoldiq) + L" " + t.birlik);
+    korsatkich({b.x, y, b.w, 92}, L"HOZIRGI QOLDIQ", son(t.qoldiq) + L" " + t.birlik);
+    if (ikki(t))  // .qiymat-izoh
+        gfx.matn({b.x + 14, y + 64, b.w - 28, 18},
+                 qadoq_matni(t) + L" \u00b7 1 " + t.olish_birligi + L" = " + son(t.olish_miqdori) + L" " + t.birlik, 12,
+                 500, M->matn3);
     y += 92 + 14;
-    gfx.matn({b.x, y, b.w, 17}, L"Haqiqiy qoldiq (" + t.birlik + L")", 12, 600, M->matn2);
+    gfx.matn({b.x, y, b.w, h1}, izoh1, 14, 400, M->matn2, CHAP, 0, true);
+    y += h1 + 14;
+    if (xh > 0) y += ichki_xabar({b.x, y, b.w, 0}, tuzat_xato, X_XATO) + 14;
+    gfx.matn({b.x, y, b.w, 17}, L"Yangi qoldiq (" + t.birlik + L")", 12, 600, M->matn2);
     y += 22;
     MaydonSoz m;
     m.ong = true;
     ui.maydon("om/t/qoldiq", {b.x, y, b.w, 50}, m);
     y += 50 + 14;
-    gfx.matn({b.x, y, b.w, 17}, L"Sabab", 12, 600, M->matn2);
+    gfx.matn({b.x, y, b.w, 17}, L"Sabab (ixtiyoriy)", 12, 600, M->matn2);
     y += 22;
     MaydonSoz iz;
-    iz.ishora = L"Masalan: sanab chiqildi";
+    iz.ishora = L"Masalan: singan, yaroqsiz yoki sanoq tuzatildi";
     ui.maydon("om/t/sabab", {b.x, y, b.w, 50}, iz);
-    float w1 = (b.w - 10) / 3;
+    y += 50 + 14;
+    gfx.matn({b.x, y, b.w, h2}, izoh2, 14, 400, M->matn2, CHAP, 0, true);
+    float w1 = gfx.matn_eni(L"Bekor qilish", 15, 600) + 36, w2 = gfx.matn_eni(L"Qoldiqni saqlash", 15, 600) + 36;
     if (ui.tugma("om/t/bekor", {b.x, b.p() - 50, w1, 50}, L"Bekor qilish", TINCH)) { tuzat_id = 0; return; }
-    if (ui.tugma("om/t/ok", {b.x + w1 + 10, b.p() - 50, b.w - w1 - 10, 50}, L"Saqlash", YASHIL, "i-belgi") ||
-        ui.enter("om/t/qoldiq")) {
+    if (ui.tugma("om/t/ok", {b.x + w1 + 14, b.p() - 50, w2, 50}, L"Qoldiqni saqlash", YASHIL) ||
+        ui.enter("om/t/qoldiq") || ui.enter("om/t/sabab")) {
         double v;
-        if (!songa(ui.qiymat("om/t/qoldiq"), v) || v < 0) {
-            ui.xabar(L"Qoldiq manfiy bo'lmagan son bo'lsin.", X_XATO);
-            return;
-        }
+        wstring q = tozala(ui.qiymat("om/t/qoldiq"));
+        tuzat_xato.clear();
+        if (q.empty()) tuzat_xato = L"Bu maydon to'ldirilishi shart.";
+        else if (!songa(q, v)) tuzat_xato = L"Son kiriting.";
+        else if (v < 0) tuzat_xato = L"Qiymat 0 dan kichik bo'lmasin.";
+        else if (std::abs(v * 1000 - std::round(v * 1000)) > 1e-6) tuzat_xato = L"Ko'pi bilan 3 kasr xonasi bo'lsin.";
         wstring sabab = tozala(ui.qiymat("om/t/sabab"));
-        qoldiq_tuzat(t.id, yaxlit(v, 3), sabab);
+        if (sabab.size() > 120) tuzat_xato = L"Sabab 120 belgidan oshmasin.";
+        if (!tuzat_xato.empty()) return;
+        v = yaxlit(v, 3);
+        if (!qoldiq_tuzatish(t.id, tuzat_eski, v, sabab, tuzat_xato)) return;
         ombor_keshini_tashla();
         ombor_eskirdi();
-        ui.xabar(t.nom + L": qoldiq " + son(v) + L" " + t.birlik + L" qilib tuzatildi.");
+        ui.xabar(t.nom + L": qoldiq " + son(v) + L" " + t.birlik + L" bo\u2018ldi.");
         tuzat_id = 0;
         yangila(false);
     }
@@ -205,7 +229,7 @@ void shtrix_oynasi() {
     if (ui.tugma("om/s/bekor", {b.x, b.p() - 50, w1, 50}, L"Bekor", TINCH)) { shtrix_id = 0; return; }
     if (ui.tugma("om/s/ok", {b.x + w1 + 10, b.p() - 50, b.w - w1 - 10, 50}, L"Saqlash", YASHIL) || ui.enter("om/s/kod")) {
         wstring x;
-        if (shtrix_saqla(t.id, ui.qiymat("om/s/kod"), x)) {
+        if (shtrix_saqla(t.id, ui.qiymat("om/s/kod"), x, &shtrix_eski)) {
             ui.xabar(L"Shtrix kod saqlandi.");
             shtrix_id = 0;
             yangila(false);
@@ -291,12 +315,16 @@ void ombor_chiz(R r) {
         wstring nt = qor > 0 ? std::to_wstring(qor) + L" qoralama" : L"";
         float nw = nt.empty() ? 0 : gfx.matn_eni(nt, 11, 600) + 22;
         // matn markazda turadi: nishon uchun ikki tomonga joy (aks holda ustma-ust tushadi)
-        float bw = gfx.matn_eni(L"Yangilanishlar", 13, 600) + 22 + 22 + 2 * nw;
-        bool b = ui.tugma("om/yan", {bx, y, bw, 34}, L"Yangilanishlar", TINCH, "i-tarix", true);
-        if (!nt.empty()) {
-            // tugma matni markazda — nishonni o'ng chetga qo'yamiz
-            ui.nishon(bx + bw - nw - 4, y + 7.5f, nt, M->ogoh_fon, M->ogoh_chek, M->ogoh);
-        }
+        // Ichi: ikonka, matn, nishon — bir qatorda, chetlarida 11 px (saytdagi .tugma.kichik)
+        float tw = gfx.matn_eni(L"Yangilanishlar", 13, 600);
+        float bw = 11 + 16 + 6 + tw + (nt.empty() ? 0 : 6 + nw) + 11;
+        bool b = ui.tugma("om/yan", {bx, y, bw, 34}, L"", TINCH, nullptr, true);
+        float ix = bx + 11;
+        gfx.ikon("i-tarix", {ix, y + 9, 16, 16}, M->matn);
+        ix += 16 + 6;
+        gfx.matn({ix, y, tw + 2, 34}, L"Yangilanishlar", 13, 600, M->matn);
+        ix += tw + 6;
+        if (!nt.empty()) ui.nishon(ix, y + 7.5f, nt, M->ogoh_fon, M->ogoh_chek, M->ogoh);
         bx += bw + 8;
         if (b) ot(J_YANGILANISHLAR);
     }
@@ -345,6 +373,9 @@ void ombor_chiz(R r) {
         gfx.chiziq(row.x, row.p() - .5f, row.o(), row.p() - .5f, M->chegara);
         auto c = ustunlar(row, u);
         string sid = std::to_string(t.id);
+        // Qator bosilishi ichidagi tugmalardan OLDIN so'raladi: bosilgan joydagi oxirgi element
+        // (tugma) faol bo'ladi, shuning uchun tugma bosilganda qator kirim oynasini ochmaydi.
+        bool qator_bos = ui.bosildi("om/q/" + sid, row);
         gfx.matn(c[0].ichki(13, 0), t.kod, 15, 700, M->matn, ONG);
         // tovar nomi + nishonlar
         R n = c[1].ichki(13, 0);
@@ -358,6 +389,7 @@ void ombor_chiz(R r) {
         float shw = std::min(c[2].w - 26, gfx.matn_eni(sh, 13, 600) + 22);
         if (ui.tugma("om/sh/" + sid, {c[2].x + 13, row.y + 21, shw, 34}, sh, TINCH, nullptr, true)) {
             shtrix_id = t.id;
+            shtrix_eski = natija[i]->shtrix;
             ui.qiymat_qoy("om/s/kod", natija[i]->shtrix);
             ui.fokus("om/s/kod");
         }
@@ -385,6 +417,8 @@ void ombor_chiz(R r) {
         float tw = gfx.matn_eni(L"Tuzatish", 13, 600) + 22;
         if (ui.tugma("om/tz/" + sid, {qd.o() - tw, row.y + 34, tw, 34}, L"Tuzatish", TINCH, nullptr, true)) {
             tuzat_id = t.id;
+            tuzat_eski = t.qoldiq;
+            tuzat_xato.clear();
             ui.qiymat_qoy("om/t/qoldiq", son(t.qoldiq));
             ui.qiymat_qoy("om/t/sabab", L"");
             ui.fokus("om/t/qoldiq");
@@ -409,7 +443,7 @@ void ombor_chiz(R r) {
             tarix = harakatlar(t.id);
             ui.scroll_tepaga("om/h/s");
         }
-        if (kir || ui.bosildi("om/q/" + sid, row)) {
+        if (kir || qator_bos) {  // qator bosilsa kirim (saytdagi kabi)
             kirim_id = t.id;
             kirim_birlik = ikki(t) ? 1 : 0;
             ui.qiymat_qoy("om/k/miqdor", L"");
@@ -536,10 +570,13 @@ void mahsulot_chiz(R r) {
                      M->kechki ? hex("#ffa0a0") : M->xato);
     };
     auto tanlov_ = [&](const string& id, float mx, float mw, const wstring& yorliq, const wstring& izoh,
-                       const std::vector<wstring>& v, int& i) {
+                       const std::vector<wstring>& v, int& i, int xid = -1) {
         gfx.matn({mx, y, mw, 17}, yorliq, 12, 600, M->matn2);
         bool o = ui.tanlov(id, {mx, y + 22, mw, 50}, v, i);
         if (!izoh.empty()) gfx.matn({mx, y + 76, mw, 16}, izoh, 12, 400, M->matn3);
+        if (xid >= 0 && !mf_xato[xid].empty())
+            gfx.matn({mx, y + (izoh.empty() ? 76 : 92), mw, 16}, mf_xato[xid], 12, 500,
+                     M->kechki ? hex("#ffa0a0") : M->xato);
         return o;
     };
     (void)xi;
@@ -586,7 +623,7 @@ void mahsulot_chiz(R r) {
     if (ui.bosildi("mf/richag", rg)) mf_ikki = !mf_ikki;
     y += 66 + 14;
     if (mf_ikki) {
-        tanlov_("mf/olish", x, ust, L"Olish birligi", L"Do'konga qaysi birlikda keladi?", mf_birliklar, mf_olish);
+        tanlov_("mf/olish", x, ust, L"Olish birligi", L"Do'konga qaysi birlikda keladi?", mf_birliklar, mf_olish, 8);
         maydon_("mf/olm", x + ust + g, ust, L"1 " + olish + L"da nechta " + bir + L"?", L"Masalan, 1 rulon = 100 metr.", true,
                 L"0", 6);
         y += 22 + 50 + 44;
@@ -631,13 +668,16 @@ void mahsulot_chiz(R r) {
     if (!songa(ui.qiymat("mf/narx"), narx) || narx < 0) mf_xato[4] = L"Son kiriting.";
     wstring kel = tozala(ui.qiymat("mf/kelish"));
     t.kelish_bor = !kel.empty();
-    if (t.kelish_bor && (!songa(kel, kelish) || kelish < 0)) mf_xato[3] = L"Son kiriting.";
+    if (t.kelish_bor && !songa(kel, kelish)) mf_xato[3] = L"Son kiriting.";
+    else if (t.kelish_bor && kelish < 0) mf_xato[3] = L"Xarid narxi manfiy bo'lishi mumkin emas.";
     if (!songa(ui.qiymat("mf/qoldiq"), qoldiq) || qoldiq < 0) mf_xato[5] = L"Son kiriting.";
-    if (mf_ikki && (!songa(ui.qiymat("mf/olm"), olm) || olm <= 0)) mf_xato[6] = L"Noldan katta son kiriting.";
+    if (mf_ikki && olish == bir)
+        mf_xato[8] = L"Kelgan va sotiladigan birlik bir xil. Birlik o'zgarmasa richagni o'chiring.";
+    if (mf_ikki && (!songa(ui.qiymat("mf/olm"), olm) || olm <= 0))
+        mf_xato[6] = L"1 " + olish + L" da nechta " + bir + L" borligini yozing (noldan katta son).";
     if (mf_ikki && !mf_id && !songa(ui.qiymat("mf/qadoq"), qadoq)) mf_xato[7] = L"Son kiriting.";
     wstring sh = tozala(ui.qiymat("mf/shtrix"));
-    if (!sh.empty() && (!raqammi(sh) || (sh.size() != 8 && sh.size() != 12 && sh.size() != 13 && sh.size() != 14)))
-        mf_xato[2] = L"Shtrix kod 8, 12, 13 yoki 14 raqamdan iborat bo'lsin.";
+    mf_xato[2] = shtrix_xatosi(sh);
     for (auto& e : mf_xato) if (!e.empty()) return;
     t.narx = narx;
     t.kelish_narxi = kelish;
@@ -646,7 +686,7 @@ void mahsulot_chiz(R r) {
     t.olish_miqdori = mf_ikki ? olm : 1;
     if (mf_ikki && !mf_id && qadoq > 0) qoldiq = yaxlit(qadoq * olm, 3);
     wstring xato;
-    long long id = tovar_saqla(t, mf_id ? 0 : qoldiq, xato);
+    long long id = tovar_saqla(t, mf_id ? 0 : qoldiq, xato, mf_ikki && !mf_id ? qadoq : 0);
     if (!id) {
         if (xato.find(L"nom") != wstring::npos) mf_xato[0] = xato;
         else if (xato.find(L"od") != wstring::npos) mf_xato[1] = xato;
@@ -658,10 +698,17 @@ void mahsulot_chiz(R r) {
         return;
     }
     tovar_faol(id, mf_faol);
-    if (mf_id && std::abs(qoldiq - mf_eski_qoldiq) > 1e-9) qoldiq_tuzat(id, yaxlit(qoldiq, 3), L"Mahsulot formasidan");
+    if (mf_id && std::abs(qoldiq - mf_eski_qoldiq) > 1e-9) qoldiq_tuzat(id, yaxlit(qoldiq, 3), L"Qo'lda tuzatildi");
     ombor_keshini_tashla();
     ombor_eskirdi();
-    ui.xabar(mf_id ? L"Mahsulot saqlandi." : L"Yangi mahsulot qo'shildi.");
+    if (mf_id) ui.xabar(L"Saqlandi.");
+    else {
+        Tovar yt;
+        tovar_ol(id, yt);
+        wstring xb = yt.nom + L" skladga qo'shildi";
+        if (yt.qoldiq) xb += L" — " + son(yt.qoldiq) + L" " + yt.birlik + (ikki(yt) ? L" = " + qadoq_matni(yt) : L"");
+        ui.xabar(xb + L".");
+    }
     if (mf_id) {
         ot(J_OMBOR);
         return;

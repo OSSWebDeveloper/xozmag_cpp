@@ -60,19 +60,6 @@ static void hozirgi_ombor() {
     ombor_eksport(ombor_filtrla(f), false);
 }
 
-// .xabar ichki bloki (warning/error/info)
-static float ichki_xabar(R r, const wstring& matn, XabarTur tur, bool olchash = false) {
-    float boy = std::max(40.f, gfx.matn_boyi(matn, 13, 500, r.w - 49) + 18);
-    if (olchash) return boy;
-    Rang fon = M->ogoh_fon, ch = M->ogoh_chek, rg = M->kechki ? hex("#ffd382") : M->ogoh;
-    if (tur == X_XATO) { fon = M->xato_fon; ch = M->xato_chek; rg = M->kechki ? hex("#ffc2c2") : hex("#a01b12"); }
-    if (tur == X_INFO) { fon = M->kok_fon; ch = M->kok_chek; rg = M->kechki ? hex("#a9dcf5") : hex("#0a5680"); }
-    gfx.quti({r.x, r.y, r.w, boy}, fon, 9, ch);
-    gfx.ikon(tur == X_INFO ? "i-quti" : "i-ogoh", {r.x + 12, r.y + 11, 16, 16}, rg);
-    gfx.matn({r.x + 37, r.y + 9, r.w - 49, boy - 18}, matn, 13, 500, rg, CHAP, 0, true);
-    return boy;
-}
-
 static float kichik_tugma_eni(const wstring& t, bool ikon) { return gfx.matn_eni(t, 13, 600) + 22 + (ikon ? 22 : 0); }
 
 // ======================= Excel yuklash =======================

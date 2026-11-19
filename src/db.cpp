@@ -435,7 +435,7 @@ static wstring unikal_xato(const BazaXato& e) {
     return W(m);
 }
 
-long long tovar_saqla(const Tovar& kirish, double boshlangich, wstring& xato) {
+long long tovar_saqla(const Tovar& kirish, double boshlangich, wstring& xato, double qadoq) {
     Tovar t = kirish;
     t.nom = tozala(t.nom);
     t.kod = tozala(t.kod);
@@ -452,7 +452,7 @@ long long tovar_saqla(const Tovar& kirish, double boshlangich, wstring& xato) {
     } else {
         if (!raqammi(t.kod) || t.kod.size() > 5 || std::stoll(t.kod) < 1 ||
             std::stoll(t.kod) > KOD_MAX) {
-            xato = L"Kod 1 dan 9999 gacha raqam bo'lsin (turgan joyi).";
+            xato = L"Kod 0001 dan 9999 gacha bo'lishi kerak.";
             return 0;
         }
         t.kod = kod_yasa(std::stoll(t.kod));
@@ -486,9 +486,10 @@ long long tovar_saqla(const Tovar& kirish, double boshlangich, wstring& xato) {
             id = baza.oxirgi_id();
             if (boshlangich > 0)
                 baza.sor("INSERT INTO ombor_omborharakati (tur, miqdor, izoh, sana, mahsulot_id,"
-                         " kiritilgan_birlik, kiritilgan_miqdor) VALUES ('kirim',?,?,?,?,'',NULL)")
+                         " kiritilgan_birlik, kiritilgan_miqdor) VALUES ('kirim',?,?,?,?,?,?)")
                     .bog(1, boshlangich).bog(2, "Boshlang'ich qoldiq").bog(3, hozir_utc())
-                    .bog(4, id).bajar();
+                    .bog(4, id).bog(5, qadoq > 0 && !t.olish_birligi.empty() ? t.olish_birligi : L"")
+                    .bog_ixtiyoriy(6, qadoq > 0 && !t.olish_birligi.empty(), qadoq).bajar();
         } else {
             Sorov s = baza.sor(
                 "UPDATE ombor_mahsulot SET nom=?, birlik=?, olish_birligi=?, olish_miqdori=?,"
@@ -538,6 +539,35 @@ void qoldiq_tuzat(long long id, double yangi, const wstring& izoh) {
     tr.tasdiq();
 }
 
+// Saytdagi views.qoldiq_tuzatish: kirim/sotuv shu orada qoldiqni o'zgartirgan bo'lsa bosib ketmaydi
+bool qoldiq_tuzatish(long long id, double eski, double yangi, const wstring& sabab, wstring& xato) {
+    Tovar t;
+    if (!tovar_ol(id, t)) {
+        xato = L"Tovar topilmadi.";
+        return false;
+    }
+    if (std::abs(yangi - eski) < 5e-4) {
+        xato = L"Qoldiq o‘zgarmadi. Yangi qoldiqni kiriting.";
+        return false;
+    }
+    Tranzaksiya tr;
+    baza.sor("UPDATE ombor_mahsulot SET qoldiq=? WHERE id=? AND abs(qoldiq-?)<0.0005")
+        .bog(1, yangi).bog(2, id).bog(3, eski).bajar();
+    if (baza.ozgarish() == 0) {
+        xato = L"Qoldiq bu orada o‘zgardi. Sahifani yangilab, qayta kiriting.";
+        return false;
+    }
+    double farq = yaxlit(yangi - eski, 3);
+    wstring izoh = L"Qoldiq: " + son(eski) + L" → " + son(yangi) + L" " + t.birlik;
+    if (!sabab.empty()) izoh += L". " + sabab;
+    baza.sor("INSERT INTO ombor_omborharakati (tur, miqdor, izoh, sana, mahsulot_id,"
+             " kiritilgan_birlik, kiritilgan_miqdor) VALUES ('tuzatish',?,?,?,?,?,?)")
+        .bog(1, farq).bog(2, izoh.substr(0, 200)).bog(3, hozir_utc()).bog(4, id).bog(5, t.birlik).bog(6, farq)
+        .bajar();
+    tr.tasdiq();
+    return true;
+}
+
 std::vector<Harakat> harakatlar(long long tovar_id) {
     std::vector<Harakat> r;
     Tovar t;
@@ -571,15 +601,35 @@ std::vector<Hudud> hududlar() {
     return r;
 }
 
-long long hudud_qosh(const wstring& nom, wstring& xato) {
-    if (tozala(nom).empty()) {
+long long hudud_qosh(const wstring& nom_, wstring& xato) {
+    // " ".join(nom.split()) — ichidagi ortiqcha bo'shliqlar ham bitta bo'ladi
+    wstring nom;
+    for (wchar_t c : nom_) {
+        bool b = iswspace(c) != 0;
+        if (b) { if (!nom.empty() && nom.back() != L' ') nom += L' '; }
+        else nom += c;
+    }
+    if (!nom.empty() && nom.back() == L' ') nom.pop_back();
+    if (nom.empty()) {
         xato = L"Hudud nomini yozing.";
         return 0;
+    }
+    if (nom.size() > 80) {
+        xato = L"Hudud nomi juda uzun.";
+        return 0;
+    }
+    {
+        Sorov s = baza.sor("SELECT 1 FROM qarz_hudud WHERE lower(nom)=lower(?)");
+        s.bog(1, nom);
+        if (s.qator()) {
+            xato = L"«" + nom + L"» hududi allaqachon bor.";
+            return 0;
+        }
     }
     try {
         baza.sor("INSERT INTO qarz_hudud (nom, tartib) VALUES (?,"
                  " (SELECT COALESCE(MAX(tartib),0)+1 FROM qarz_hudud))")
-            .bog(1, tozala(nom)).bajar();
+            .bog(1, nom).bajar();
         return baza.oxirgi_id();
     } catch (const BazaXato& e) {
         xato = unikal_xato(e);

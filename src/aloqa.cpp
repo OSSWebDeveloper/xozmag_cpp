@@ -606,7 +606,7 @@ string bajar(Baza& b, Ulanish& u, long long& f, string& tok, const string& kadr)
             Sorov s = b.sor("SELECT id, username, password, is_superuser, is_active FROM auth_user WHERE username=?");
             s.bog(1, login);
             if (!s.qator() || !s.butun(4) || !parol_mos(parol, s.matnU(2)))
-                return xato_javob("Login yoki parol noto'g'ri.");
+                return xato_javob("Login yoki parol xato.");
             long long id = s.butun(0);
             string nom = s.matnU(1);
             bool su = s.butun(3) != 0;

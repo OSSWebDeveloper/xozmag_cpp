@@ -52,7 +52,7 @@ foreach ($j in $jarayonlar) { if ($j.ExitCode -ne 0) { throw "Kompilyatsiya xato
 Ishlat $gpp ($bog + $obyektlar + @('build\xozmag_res.o', 'tashqi\sqlite3.dll',
     '-ld2d1', '-ldwrite', '-lwindowscodecs', '-lshlwapi', '-lbcrypt',
     '-lcomctl32', '-lcomdlg32', '-lgdi32', '-lwinhttp', '-lole32', '-lshell32', '-luuid',
-    '-lwinspool', '-lws2_32', '-liphlpapi', '-lnormaliz', '-o', 'build\Xozmag.exe'))
+    '-lwinspool', '-lws2_32', '-liphlpapi', '-lnormaliz', '-lsetupapi', '-lcfgmgr32', '-o', 'build\Xozmag.exe'))
 Copy-Item tashqi\sqlite3.dll build\sqlite3.dll -Force
 
 Write-Host "O'rnatuvchi yig'ilmoqda..."

@@ -335,6 +335,8 @@ struct CqQator {
 std::vector<CqQator> cq;
 string cq_sana;
 
+}  // namespace
+
 // Savdo chekining shtrixi: 88 + chek raqami (9) + nazorat (sotuv/chek.py: och)
 long long chek_kodini_och(const wstring& matn) {
     wstring t = tozala(matn);
@@ -342,6 +344,8 @@ long long chek_kodini_och(const wstring& matn) {
     if (ean_nazorat(t.substr(0, 11)) != t[11] - L'0') return 0;
     return std::stoll(t.substr(2, 9));
 }
+
+namespace {
 
 bool cq_yukla(long long id) {
     cq.clear();
