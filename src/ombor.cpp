@@ -523,7 +523,8 @@ void mahsulot_chiz(R r) {
         ui.maydon(id, {mx, y + 22, mw, 50}, m);
         if (!izoh.empty()) gfx.matn({mx, y + 76, mw, 16}, izoh, 12, 400, M->matn3);
         if (!mf_xato[xid].empty())
-            gfx.matn({mx, y + 92, mw, 16}, mf_xato[xid], 12, 500, M->kechki ? hex("#ffa0a0") : M->xato);
+            gfx.matn({mx, y + (izoh.empty() ? 76 : 92), mw, 16}, mf_xato[xid], 12, 500,
+                     M->kechki ? hex("#ffa0a0") : M->xato);
     };
     auto tanlov_ = [&](const string& id, float mx, float mw, const wstring& yorliq, const wstring& izoh,
                        const std::vector<wstring>& v, int& i) {

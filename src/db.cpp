@@ -1,4 +1,5 @@
 #include "db.h"
+#include "aloqa.h"
 
 #include <algorithm>
 #include <set>
@@ -10,46 +11,134 @@ const std::vector<wstring> BIRLIKLAR = {L"dona", L"kg",    L"metr",   L"litr", L
                                         L"tonna", L"kvm",  L"blok"};
 
 // ======================= SQLite o'rami =======================
+// Masofaviy rejimda (aloqa.h) so'rov birinchi qator()/bajar() da serverga ketadi.
 
-Sorov::Sorov(sqlite3* db, const string& sql) : db_(db) {
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &st_, nullptr) != SQLITE_OK)
-        throw BazaXato(string(sqlite3_errmsg(db)) + "\nSQL: " + sql);
+Sorov::Sorov(Baza& b, const string& sql) : b_(b) {
+    if (b.uzoqmi()) {
+        sql_ = sql;
+        return;
+    }
+    if (sqlite3_prepare_v2(b.h(), sql.c_str(), -1, &st_, nullptr) != SQLITE_OK)
+        throw BazaXato(string(sqlite3_errmsg(b.h())) + "\nSQL: " + sql);
 }
-Sorov::~Sorov() { sqlite3_finalize(st_); }
+Sorov::~Sorov() { if (st_) sqlite3_finalize(st_); }
 
+void Sorov::qoy(int i, Qiymat q) {
+    if (i < 1) return;
+    if ((int)par_.size() < i) par_.resize(i);
+    par_[i - 1] = std::move(q);
+}
 Sorov& Sorov::bog(int i, const string& v) {
+    if (b_.uzoqmi()) { Qiymat q; q.tur = 3; q.s = v; qoy(i, std::move(q)); return *this; }
     sqlite3_bind_text(st_, i, v.c_str(), (int)v.size(), SQLITE_TRANSIENT);
     return *this;
 }
 Sorov& Sorov::bog(int i, double v) {
+    if (b_.uzoqmi()) { Qiymat q; q.tur = 2; q.d = v; qoy(i, q); return *this; }
     sqlite3_bind_double(st_, i, v);
     return *this;
 }
 Sorov& Sorov::bog(int i, long long v) {
+    if (b_.uzoqmi()) { Qiymat q; q.tur = 1; q.i = v; qoy(i, q); return *this; }
     sqlite3_bind_int64(st_, i, v);
     return *this;
 }
 Sorov& Sorov::bosh(int i) {
+    if (b_.uzoqmi()) { qoy(i, Qiymat{}); return *this; }
     sqlite3_bind_null(st_, i);
     return *this;
 }
 bool Sorov::qator() {
+    if (b_.uzoqmi()) {
+        if (!bajarildi_) {
+            b_.yubor();  // avvalgi yozuvlar natijaga ta'sir qiladi
+            uzoq_sql(sql_, par_, nat_, ustun_, b_.uzoq_ozgarish, b_.uzoq_id);
+            qatorlar_ = ustun_ ? nat_.size() / ustun_ : 0;
+            joriy_ = 0;
+            bajarildi_ = true;
+            return qatorlar_ > 0;
+        }
+        if (joriy_ + 1 < qatorlar_) { ++joriy_; return true; }
+        joriy_ = qatorlar_;
+        return false;
+    }
     int r = sqlite3_step(st_);
     if (r == SQLITE_ROW) return true;
     if (r == SQLITE_DONE) return false;
-    throw BazaXato(sqlite3_errmsg(db_));
+    throw BazaXato(sqlite3_errmsg(b_.h()));
 }
 void Sorov::bajar() {
+    if (b_.uzoqmi()) {
+        if (bajarildi_) return;
+        if (b_.toplash()) {  // tranzaksiya ichida: navbatga, COMMIT bilan birga ketadi
+            b_.navbatga(sql_, par_);
+            bajarildi_ = true;
+            ustun_ = qatorlar_ = joriy_ = 0;
+            return;
+        }
+        qator();
+        return;
+    }
     while (qator()) {}
 }
-void Sorov::qayta() { sqlite3_reset(st_); }
+void Sorov::qayta() {
+    if (b_.uzoqmi()) {
+        bajarildi_ = false;
+        nat_.clear();
+        qatorlar_ = joriy_ = 0;
+        return;
+    }
+    sqlite3_reset(st_);
+}
+
+const Qiymat& Sorov::q(int i) {
+    static const Qiymat bosh_q;
+    if (!bajarildi_ || joriy_ >= qatorlar_ || i < 0 || (size_t)i >= ustun_) return bosh_q;
+    return nat_[joriy_ * ustun_ + i];
+}
 string Sorov::matnU(int i) {
+    if (b_.uzoqmi()) {
+        const Qiymat& v = q(i);
+        if (v.tur == 3) return v.s;
+        if (v.tur == 1) return std::to_string(v.i);
+        if (v.tur == 2) {  // SQLite'dagidek: "%!.15g" — butun bo'lsa ham ".0"
+            char b[40];
+            snprintf(b, sizeof b, "%.15g", v.d);
+            string r = b;
+            if (r.find_first_of(".eEn") == string::npos) r += ".0";
+            return r;
+        }
+        return {};
+    }
     const unsigned char* p = sqlite3_column_text(st_, i);
     return p ? string((const char*)p) : string();
 }
-double Sorov::son(int i) { return sqlite3_column_double(st_, i); }
-long long Sorov::butun(int i) { return sqlite3_column_int64(st_, i); }
-bool Sorov::bormi(int i) { return sqlite3_column_type(st_, i) != SQLITE_NULL; }
+double Sorov::son(int i) {
+    if (b_.uzoqmi()) {
+        const Qiymat& v = q(i);
+        return v.tur == 2 ? v.d : v.tur == 1 ? (double)v.i : v.tur == 3 ? strtod(v.s.c_str(), nullptr) : 0;
+    }
+    return sqlite3_column_double(st_, i);
+}
+long long Sorov::butun(int i) {
+    if (b_.uzoqmi()) {
+        const Qiymat& v = q(i);
+        if (v.tur == 1) return v.i;
+        if (v.tur == 2) return (long long)v.d;
+        if (v.tur == 3) {  // SQLite: matn son bo'lsa (masalan "12.0") o'shani oladi
+            char* e = nullptr;
+            long long n = strtoll(v.s.c_str(), &e, 10);
+            if (e && (*e == '.' || *e == 'e' || *e == 'E')) return (long long)strtod(v.s.c_str(), nullptr);
+            return n;
+        }
+        return 0;
+    }
+    return sqlite3_column_int64(st_, i);
+}
+bool Sorov::bormi(int i) {
+    if (b_.uzoqmi()) return q(i).tur != 0;
+    return sqlite3_column_type(st_, i) != SQLITE_NULL;
+}
 
 // Django jadvallari — o'zgartirmasdan (eski baza bilan bir xil bo'lishi shart).
 static const char* SXEMA = R"SQL(
@@ -65,6 +154,7 @@ CREATE TABLE IF NOT EXISTS "qarz_tolov" ("id" integer NOT NULL PRIMARY KEY AUTOI
 CREATE TABLE IF NOT EXISTS "sotuv_sotuvqator" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "mahsulot_nomi" varchar(120) NOT NULL, "birlik" varchar(10) NOT NULL, "miqdor" decimal NOT NULL, "mahsulot_id" bigint NOT NULL REFERENCES "ombor_mahsulot" ("id") DEFERRABLE INITIALLY DEFERRED, "sotuv_id" bigint NOT NULL REFERENCES "sotuv_sotuv" ("id") DEFERRABLE INITIALLY DEFERRED, "qaytarilgan" decimal NOT NULL, "narx" decimal NULL, "valyuta" varchar(10) NOT NULL);
 CREATE TABLE IF NOT EXISTS "auth_user" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "password" varchar(128) NOT NULL, "last_login" datetime NULL, "is_superuser" bool NOT NULL, "username" varchar(150) NOT NULL UNIQUE, "last_name" varchar(150) NOT NULL, "email" varchar(254) NOT NULL, "is_staff" bool NOT NULL, "is_active" bool NOT NULL, "date_joined" datetime NOT NULL, "first_name" varchar(150) NOT NULL);
 CREATE TABLE IF NOT EXISTS "xozmag_sozlama" ("kalit" text NOT NULL PRIMARY KEY, "qiymat" text NOT NULL);
+CREATE TABLE IF NOT EXISTS "xozmag_sessiya" ("token" text NOT NULL PRIMARY KEY, "user_id" integer NOT NULL, "yaratilgan" integer NOT NULL, "oxirgi" integer NOT NULL, "kompyuter" text NOT NULL);
 CREATE INDEX IF NOT EXISTS "x_harakat_mahsulot" ON "ombor_omborharakati" ("mahsulot_id");
 CREATE INDEX IF NOT EXISTS "x_qarzdor_hudud" ON "qarz_qarzdor" ("hudud_id");
 CREATE INDEX IF NOT EXISTS "x_qarz_qarzdor" ON "qarz_qarz" ("qarzdor_id");
@@ -109,11 +199,45 @@ void Baza::och(const wstring& fayl) {
 }
 
 void Baza::yop() {
+    if (uzoq_) return;
     if (h_) sqlite3_close_v2(h_);
     h_ = nullptr;
 }
 
+void Baza::navbatga(const string& sql, const std::vector<Qiymat>& par) {
+    navbat_.push_back({sql, par, false});
+    if (navbat_.size() >= 3000) yubor();  // kadr juda katta bo'lmasin
+}
+
+void Baza::yubor() {
+    if (navbat_.empty()) return;
+    std::vector<Navbat> n;
+    n.swap(navbat_);
+    uzoq_toplam(n, uzoq_ozgarish, uzoq_id);
+}
+
 void Baza::bajar(const string& sql) {
+    if (uzoq_) {
+        size_t a = sql.find_first_not_of(" \t\r\n");
+        string k = a == string::npos ? "" : sql.substr(a, 8);
+        for (char& c : k) c = (char)toupper((unsigned char)c);
+        if (k.rfind("ROLLBACK", 0) == 0) {  // navbat bekor — baribir qaytariladi
+            navbat_.clear();
+            toplash_ = false;
+            uzoq_exec(sql, uzoq_ozgarish);
+            return;
+        }
+        if (k.rfind("COMMIT", 0) == 0 || k.rfind("END", 0) == 0) {
+            toplash_ = false;
+            navbat_.push_back({sql, {}, true});
+            yubor();
+            return;
+        }
+        yubor();
+        uzoq_exec(sql, uzoq_ozgarish);
+        if (k.rfind("BEGIN", 0) == 0) toplash_ = true;
+        return;
+    }
     char* xato = nullptr;
     if (sqlite3_exec(h_, sql.c_str(), nullptr, nullptr, &xato) != SQLITE_OK) {
         string m = xato ? xato : "noma'lum xato";
@@ -122,7 +246,16 @@ void Baza::bajar(const string& sql) {
     }
 }
 
-long long Baza::oxirgi_id() { return sqlite3_last_insert_rowid(h_); }
+long long Baza::oxirgi_id() {
+    if (!uzoq_) return sqlite3_last_insert_rowid(h_);
+    yubor();
+    return uzoq_id;
+}
+long long Baza::ozgarish() {
+    if (!uzoq_) return sqlite3_changes(h_);
+    yubor();
+    return uzoq_ozgarish;
+}
 
 // ======================= Qidiruv yordamchilari =======================
 
@@ -937,7 +1070,7 @@ bool eski_bazani_import(const wstring& fayl, wstring& hisobot) {
             }
             baza.bajar(string("INSERT INTO main.\"") + JADVALLAR[i] + "\" (" + kim + ") SELECT " +
                        nima + " FROM eski.\"" + JADVALLAR[i] + "\"");
-            soni[i] = sqlite3_changes(baza.h());
+            soni[i] = baza.ozgarish();
         }
         // Eski 5 xonali kodlar 4 xonaga (0027); band bo'lsa o'zgarmaydi.
         baza.bajar("UPDATE OR IGNORE ombor_mahsulot SET kod = printf('%04d', CAST(kod AS INTEGER))"

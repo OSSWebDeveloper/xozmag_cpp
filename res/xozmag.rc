@@ -3,7 +3,12 @@
 #include "versiya_raqam.h"
 
 1 ICON "sayt/bizaropos.ico"
+// Sinov yig'ishida (tez.sh) administrator so'ralmaydi
+#ifdef SINOV
+1 24 "xozmag_sinov.manifest"
+#else
 1 24 "xozmag.manifest"
+#endif
 201 RCDATA "sayt/ikonlar.html"
 202 RCDATA "sayt/bosh-fon.jpg"
 203 RCDATA "sayt/bosh-kunduzgi.svg"

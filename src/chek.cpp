@@ -6,24 +6,6 @@
 
 #include "ui.h"
 
-wstring ini_qiymat(const wchar_t* kalit, const wchar_t* standart) {
-    PWSTR p = nullptr;
-    wstring f;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &p))) f = p;
-    CoTaskMemFree(p);
-    wchar_t b[512];
-    GetPrivateProfileStringW(L"xozmag", kalit, standart, b, 512, (f + L"\\Xozmag\\sozlama.ini").c_str());
-    return b;
-}
-
-void ini_qiymat_yoz(const wchar_t* kalit, const wstring& v) {
-    PWSTR p = nullptr;
-    wstring f;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &p))) f = p;
-    CoTaskMemFree(p);
-    WritePrivateProfileStringW(L"xozmag", kalit, v.c_str(), (f + L"\\Xozmag\\sozlama.ini").c_str());
-}
-
 static int chek_eni() { return ini_qiymat(L"chek_eni", L"80") == L"58" ? 32 : 42; }
 
 void chekni_avtomatik_chop(long long sotuv_id) {

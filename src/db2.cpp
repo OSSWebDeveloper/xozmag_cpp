@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "db.h"
+#include "aloqa.h"
 
 // ======================= Parollar (Django pbkdf2_sha256) =======================
 
@@ -44,7 +45,7 @@ string parol_hash(const wstring& parol) {
     return "pbkdf2_sha256$" + std::to_string(TAKROR) + "$" + tuz + "$" + pbkdf2(U(parol), tuz, TAKROR);
 }
 
-static bool parol_mos(const wstring& parol, const string& hash) {
+bool parol_mos(const wstring& parol, const string& hash) {
     // pbkdf2_sha256$<takror>$<tuz>$<hash>
     size_t a = hash.find('$'), b = hash.find('$', a + 1), c = hash.find('$', b + 1);
     if (a == string::npos || b == string::npos || c == string::npos) return false;
@@ -64,11 +65,14 @@ bool django_bazasimi() {
 }
 
 long long foydalanuvchilar_soni() {
+    if (baza.uzoqmi()) return uzoq_foydalanuvchilar_soni();
     Sorov s = baza.sor("SELECT count(*) FROM auth_user WHERE is_active=1");
     return s.qator() ? s.butun(0) : 0;
 }
 
-bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f, wstring& xato) {
+bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f, wstring& xato,
+                    bool sessiya) {
+    if (baza.uzoqmi()) return uzoq_kirish(login, parol, f, xato, sessiya);
     Sorov s = baza.sor("SELECT id, username, password, is_superuser, is_active FROM auth_user"
                        " WHERE username=?");
     s.bog(1, tozala(login));
@@ -99,6 +103,8 @@ bool foydalanuvchi_yarat(const wstring& login, const wstring& parol, bool superu
         xato = L"Login yozing, parol kamida 4 belgi bo'lsin.";
         return false;
     }
+    // Serverda hali hech kim yo'q: birinchi foydalanuvchini server o'zi yaratadi
+    if (baza.uzoqmi() && !uzoq_kirgan()) return uzoq_birinchi(login, parol, xato);
     try {
         baza.sor("INSERT INTO auth_user (password, last_login, is_superuser, username, last_name,"
                  " email, is_staff, is_active, date_joined, first_name)"

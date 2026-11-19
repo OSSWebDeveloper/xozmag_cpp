@@ -1,5 +1,6 @@
 // Umumiy bezaklar va kichik sahifalar: Kirish, Bosh, Login/Parol.
 #include "ilova.h"
+#include "aloqa.h"
 
 #include <commdlg.h>
 
@@ -78,29 +79,13 @@ void tayyorlanmoqda_chiz(R r, const wstring& nom, const char* ikon) {
 static wstring kirish_xato;
 static bool birinchi_yuklash = true;
 
-static void baza_tanla() {
-    wchar_t fayl[MAX_PATH] = {};
-    OPENFILENAMEW o = {sizeof o};
-    o.hwndOwner = ui.h;
-    o.lpstrFilter = L"Xozmag bazasi (*.sqlite3)\0*.sqlite3\0Hamma fayllar\0*.*\0";
-    o.lpstrFile = fayl;
-    o.nMaxFile = MAX_PATH;
-    o.lpstrTitle = L"Baza faylini tanlang (sayt bazasi: BizaroPOS-Server\\db.sqlite3)";
-    o.Flags = OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
-    if (!GetOpenFileNameW(&o)) return;
-    wstring eski = baza.fayl();
-    try {
-        baza.och(fayl);
-        baza_yolini_saqla(fayl);
-        ui.xabar(L"Baza ochildi.");
-    } catch (const std::exception& e) {
-        ui.xabar(L"Bazani ochib bo'lmadi: " + W(e.what()), X_XATO);
-        try { baza.och(eski); } catch (...) {}
-    }
-}
+static long long kirish_soni = -1;  // foydalanuvchilar soni (serverdan bir marta)
+
+void kirish_ochildi() { kirish_soni = -1; }
 
 void kirish_chiz(R r) {
-    bool yangi = foydalanuvchilar_soni() == 0;
+    if (kirish_soni < 0) kirish_soni = foydalanuvchilar_soni();
+    bool yangi = kirish_soni == 0;
     float en = std::min(380.f, r.w - 28);
     float boy = yangi ? 550 : 440;
     R q = {r.x + (r.w - en) / 2, r.y + (r.h - boy) / 2 - 20, en, boy};
@@ -151,11 +136,11 @@ void kirish_chiz(R r) {
         if (yangi) {
             if (parol != ui.qiymat("kirish/parol2")) kirish_xato = L"Parollar bir xil emas.";
             else if (!foydalanuvchi_yarat(login, parol, true, kirish_xato)) {}
-            else kirish_xato.clear();
+            else { kirish_xato.clear(); kirish_soni = 1; }
         }
         HCURSOR k = SetCursor(LoadCursor(nullptr, IDC_WAIT));
         if (kirish_xato.empty() && kirish_tekshir(login, parol, foydalanuvchi, kirish_xato)) {
-            sozlama_yoz("kirgan", std::to_wstring(foydalanuvchi.id) + L"|" + std::to_wstring(time(nullptr)));
+            ini_saqla(L"token", W(sessiya_tokeni()));
             ui.qiymat_qoy("kirish/parol", L"");
             ui.qiymat_qoy("kirish/parol2", L"");
             birinchi_yuklash = true;
@@ -164,14 +149,17 @@ void kirish_chiz(R r) {
             ui.fokus("kirish/parol");
         SetCursor(k);
     }
-    // Baza qaysi fayl ekani (faqat dasturda: sayt o'z serverida turadi)
-    wstring b = L"Baza: " + baza.fayl();
+    // Qaysi serverga ulangani
+    wstring b = L"Server: " + ulangan_manzil();
     float by = q.p() + 16;
     gfx.matn({r.x + 20, by, r.w - 40, 18}, b, 12, 400, M->matn3, MARKAZ);
-    float bw = 150;
-    if (ui.tugma("kirish/baza", {r.x + (r.w - bw) / 2, by + 24, bw, 34}, L"Bazani tanlash", TINCH,
-                 nullptr, true))
-        baza_tanla();
+    float bw = 190;
+    if (ui.tugma("kirish/server", {r.x + (r.w - bw) / 2, by + 24, bw, 34}, L"Serverni almashtirish", TINCH,
+                 nullptr, true)) {
+        uzil();
+        ulanish_ochildi(L"");
+        ot(J_ULANISH);
+    }
 }
 
 // ======================= Bosh sahifa =======================
@@ -285,7 +273,7 @@ void akkaunt_chiz(R r) {
     for (auto& e : ak_xato) if (!e.empty()) return;
     wstring x2;
     Foydalanuvchi tek;
-    if (!kirish_tekshir(foydalanuvchi.login, eski, tek, x2)) {
+    if (!kirish_tekshir(foydalanuvchi.login, eski, tek, x2, false)) {
         ak_xato[1] = L"Hozirgi parol noto'g'ri.";
         return;
     }

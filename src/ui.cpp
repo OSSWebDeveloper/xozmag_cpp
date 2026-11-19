@@ -186,8 +186,17 @@ HWND Ui::tahrir(const string& id, R r, MaydonSoz s) {
         return t.h;
     }
     bool yashirin = !IsWindowVisible(t.h);
-    SetWindowPos(t.h, HWND_TOP, int(e.x * ms + .5f), int(y * ms + .5f), int(e.w * ms + .5f),
-                 int(boy * ms + .5f), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    RECT yangi = {int(e.x * ms + .5f), int(y * ms + .5f), 0, 0};
+    yangi.right = yangi.left + int(e.w * ms + .5f);
+    yangi.bottom = yangi.top + int(boy * ms + .5f);
+    RECT eski;
+    GetWindowRect(t.h, &eski);
+    MapWindowPoints(nullptr, h, (POINT*)&eski, 2);
+    // Siljisa (sahifa aylantirildi) eski piksellar ko'chirilmasin — maydon o'zini qayta chizadi
+    bool siljidi = !EqualRect(&eski, &yangi);
+    SetWindowPos(t.h, HWND_TOP, yangi.left, yangi.top, yangi.right - yangi.left, yangi.bottom - yangi.top,
+                 SWP_NOACTIVATE | SWP_SHOWWINDOW | (siljidi ? SWP_NOCOPYBITS : 0));
+    if (siljidi) chizilsin.insert(t.h);
     if (t.yangi || yashirin) {  // birinchi chizishda oq fon ko'rinmasin
         t.yangi = false;
         chizilsin.insert(t.h);

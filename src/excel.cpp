@@ -1,5 +1,6 @@
 // ombor/excel.py — C++ dagi nusxasi (qoidalar, xabarlar va JSON bir xil).
 #include "excel.h"
+#include "aloqa.h"
 
 #include <algorithm>
 #include <cmath>
@@ -757,6 +758,7 @@ static std::vector<YQator> amaldagi_qatorlar(long long id) {
 }
 
 bool qollash(long long id, std::vector<wstring>& xatolar) {
+    if (baza.uzoqmi()) return uzoq_amal(SA_QOLLASH, id, xatolar);
     xatolar.clear();
     Yangilanish y;
     if (!yangilanish_ol(id, y) || y.holat != L"qoralama") {
@@ -846,6 +848,7 @@ bool qollash(long long id, std::vector<wstring>& xatolar) {
 }
 
 std::vector<Toqnash> bekor_toqnashuvlari(long long id) {
+    if (baza.uzoqmi()) return uzoq_toqnashuvlar(id);
     std::vector<Toqnash> r;
     Yangilanish y;
     if (!yangilanish_ol(id, y)) return r;
@@ -883,6 +886,7 @@ std::vector<Toqnash> bekor_toqnashuvlari(long long id) {
 }
 
 bool bekor_qil(long long id, std::vector<wstring>& xatolar) {
+    if (baza.uzoqmi()) return uzoq_amal(SA_BEKOR, id, xatolar);
     xatolar.clear();
     Yangilanish y;
     if (!yangilanish_ol(id, y) || y.holat != L"qollandi") {
@@ -944,7 +948,7 @@ bool qoralamani_ochir(long long id, wstring& xato) {
 long long xatolarni_chiqar(long long id) {
     baza.sor("UPDATE ombor_yangilanishqatori SET chiqarilgan=1 WHERE yangilanish_id=? AND amal='xato' AND chiqarilgan=0")
         .bog(1, id).bajar();
-    return sqlite3_changes(baza.h());
+    return baza.ozgarish();
 }
 
 bool qator_chiqar(long long qid, wstring& xato) {

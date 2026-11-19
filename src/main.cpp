@@ -1,5 +1,6 @@
 // Ulug'bek Xozmag — sayt bilan bir xil ko'rinish va ishlash, lekin brauzersiz (Win32 + Direct2D).
 #include "ilova.h"
+#include "aloqa.h"
 
 #include <shlobj.h>
 #include <windowsx.h>
@@ -9,8 +10,12 @@
 Foydalanuvchi foydalanuvchi;
 bool sensor = false;
 static Joy joriy = J_KIRISH;
+static long long joriy_param = 0;
+static Joy qaytish_joy = J_BOSH;     // aloqa uzilganda turgan sahifa
+static long long qaytish_param = 0;
 static HWND hOyna;
 static wstring ini_yoli;
+static bool server_rejim = false;
 
 wstring versiya() { return XOZMAG_VERSIYA; }
 Joy joriy_joy() { return joriy; }
@@ -26,6 +31,10 @@ static void ini_yoz(const wchar_t* kalit, const wstring& v) {
     WritePrivateProfileStringW(L"xozmag", kalit, v.c_str(), ini_yoli.c_str());
 }
 
+wstring ini_qiymat(const wchar_t* kalit, const wchar_t* standart) { return ini_ol(kalit, standart); }
+void ini_saqla(const wchar_t* kalit, const wstring& v) { ini_yoz(kalit, v); }
+void ini_qiymat_yoz(const wchar_t* kalit, const wstring& v) { ini_yoz(kalit, v); }
+
 static void mavzu_qoy(bool kechki) {
     M = kechki ? &KECHKI : &KUNDUZGI;
     ini_yoz(L"mavzu", kechki ? L"kechki" : L"kunduzgi");
@@ -37,9 +46,13 @@ static void mavzu_qoy(bool kechki) {
 // ---------- O'tish ----------
 
 void ot(Joy j, long long p) {
-    if (j != J_KIRISH && !foydalanuvchi.id) j = J_KIRISH;
+    if (server_rejim) j = J_SERVER;
+    else if (!ulangan()) j = J_ULANISH;  // server yo'q — avval manzil
+    else if (j != J_KIRISH && j != J_ULANISH && !foydalanuvchi.id) j = J_KIRISH;
     joriy = j;
+    joriy_param = p;
     switch (j) {
+        case J_KIRISH: kirish_ochildi(); break;
         case J_SOTUV: sotuv_ochildi(p); break;
         case J_QARZ_YOZ: qarz_yozish_ochildi(p); break;
         case J_QARZDORLAR: qarzdorlar_ochildi(p); break;
@@ -66,9 +79,27 @@ void ot(Joy j, long long p) {
 }
 
 void chiqish() {
-    sozlama_yoz("kirgan", L"");
+    try { uzoq_chiqish(); } catch (const std::exception&) {}
+    ini_yoz(L"token", L"");
     foydalanuvchi = {};
     ot(J_KIRISH);
+}
+
+void ulanganda() {
+    ini_yoz(L"server", ulangan_manzil());
+    Foydalanuvchi f;
+    if (uzoq_sessiya(f)) {
+        foydalanuvchi = f;
+        Joy j = qaytish_joy;
+        if (j == J_ULANISH || j == J_KIRISH || j == J_SERVER) j = J_BOSH;
+        ot(j, qaytish_param);
+    } else {
+        foydalanuvchi = {};
+        ini_yoz(L"token", L"");
+        ot(J_KIRISH);
+    }
+    qaytish_joy = J_BOSH;
+    qaytish_param = 0;
 }
 
 // ---------- Yon menyu (.yon-menyu) ----------
@@ -162,7 +193,22 @@ static void chiz() {
     if (!gfx.chizish_boshla()) return;
     R hammasi = {0, 0, ui.W, ui.H};
     gfx.quti(hammasi, M->fon);
-    if (joriy == J_KIRISH) {
+    // Server bilan aloqa uzildi: manzilni yana so'raymiz, qayta ulangach o'sha sahifaga qaytadi
+    if (!server_rejim && aloqa_uzildi() && joriy != J_ULANISH) {
+        if (joriy != J_KIRISH) {
+            qaytish_joy = joriy;
+            qaytish_param = joriy_param;
+        }
+        uzil();
+        ulanish_ochildi(L"Server bilan aloqa uzildi. Server ochiqligini va tarmoqni tekshirib, qayta ulaning.");
+        joriy = J_ULANISH;
+        SetFocus(hOyna);
+    }
+    if (joriy == J_SERVER) {
+        server_chiz(hammasi);
+    } else if (joriy == J_ULANISH) {
+        ulanish_chiz(hammasi);
+    } else if (joriy == J_KIRISH) {
         kirish_chiz(hammasi);
     } else {
         const float MENYU = 82;
@@ -218,7 +264,8 @@ static LRESULT CALLBACK jarayon(HWND h, UINT m, WPARAM w, LPARAM l) {
                 chiz();
             } catch (const std::exception& e) {
                 gfx.chizish_tugat();
-                MessageBoxW(h, (L"Kutilmagan xato:\n" + W(e.what())).c_str(), L"Xozmag", MB_ICONERROR);
+                if (aloqa_uzildi()) keyin = true;  // keyingi kadr ulanish oynasini ko'rsatadi
+                else MessageBoxW(h, (L"Kutilmagan xato:\n" + W(e.what())).c_str(), L"Xozmag", MB_ICONERROR);
             }
             EndPaint(h, &ps);
             if (keyin) {
@@ -276,8 +323,21 @@ static LRESULT CALLBACK jarayon(HWND h, UINT m, WPARAM w, LPARAM l) {
             if (HIWORD(w) == EN_SETFOCUS || HIWORD(w) == EN_KILLFOCUS) InvalidateRect(h, nullptr, FALSE);
             return 0;
         case WM_TIMER:
+            if (w == 79) {  // har 5 soniyada server tirikligini tekshirish
+                if (!server_rejim && !tirikmi()) InvalidateRect(h, nullptr, FALSE);
+                return 0;
+            }
             InvalidateRect(h, nullptr, FALSE);
             return 0;
+        case WM_CLOSE:
+            if (server_rejim) {
+                size_t n = server_mijozlari().size();
+                if (n && MessageBoxW(h, (std::to_wstring(n) + L" ta kassa ulangan. Server to'xtatilsa ular ishlay olmaydi.\n\n"
+                                        L"Baribir yopilsinmi?").c_str(),
+                                     L"Xozmag Server", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES)
+                    return 0;
+            }
+            break;
         case WM_GETMINMAXINFO:
             ((MINMAXINFO*)l)->ptMinTrackSize = {int(900 * ms), int(600 * ms)};
             return 0;
@@ -309,30 +369,54 @@ bool bazani_och(const wstring& yol, wstring& xato) {
 
 int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    HANDLE mutex = CreateMutexW(nullptr, TRUE, L"Local\\UlugbekXozmagExe");
+    // Buyruq satri: --server (do'kon serveri), --baza <fayl>, --port <n>, --malumot <papka> (sinov)
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    wstring baza_arg, port_arg;
+    wstring malumot = papka(FOLDERID_LocalAppData) + L"\\Xozmag";
+    for (int i = 1; i < argc; ++i) {
+        wstring a = argv[i];
+        if (a == L"--server") server_rejim = true;
+        else if (i + 1 < argc && a == L"--baza") baza_arg = argv[++i];
+        else if (i + 1 < argc && a == L"--port") port_arg = argv[++i];
+        else if (i + 1 < argc && a == L"--malumot") malumot = argv[++i];
+    }
+    LocalFree(argv);
+    const wchar_t* sinf = server_rejim ? L"UlugbekXozmagServer" : L"UlugbekXozmag";
+    HANDLE mutex = CreateMutexW(nullptr, TRUE, server_rejim ? L"Local\\UlugbekXozmagServer" : L"Local\\UlugbekXozmagExe");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        HWND bor = FindWindowW(L"UlugbekXozmag", nullptr);
+        HWND bor = FindWindowW(sinf, nullptr);
         if (bor) { ShowWindow(bor, SW_RESTORE); SetForegroundWindow(bor); }
         return 0;
     }
-    wstring malumot = papka(FOLDERID_LocalAppData) + L"\\Xozmag";
     SHCreateDirectoryExW(nullptr, malumot.c_str(), nullptr);
     ini_yoli = malumot + L"\\sozlama.ini";
     M = ini_ol(L"mavzu", L"kechki") == L"kunduzgi" ? &KUNDUZGI : &KECHKI;
     sensor = ini_ol(L"sensor", L"0") == L"1";
 
-    // --baza <fayl> — sinov uchun boshqa baza
-    int argc = 0;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    wstring yol = baza_yolini_aniqla();
-    for (int i = 1; i + 1 < argc; ++i)
-        if (wcscmp(argv[i], L"--baza") == 0) yol = argv[i + 1];
-    LocalFree(argv);
-    wstring xato;
-    if (!bazani_och(yol, xato)) {
-        MessageBoxW(nullptr, (L"Bazani ochib bo'lmadi:\n" + yol + L"\n\n" + xato).c_str(), L"Xozmag",
-                    MB_ICONERROR);
-        if (yol == oz_baza_yoli() || !bazani_och(oz_baza_yoli(), xato)) return 1;
+    if (server_rejim) {
+        // Server: bazani o'zi ochadi (sayt bazasi bo'lsa — o'sha), kassalarni tinglaydi
+        wstring yol = baza_arg.empty() ? baza_yolini_aniqla() : baza_arg;
+        wstring xato;
+        if (!bazani_och(yol, xato)) {
+            MessageBoxW(nullptr, (L"Bazani ochib bo'lmadi:\n" + yol + L"\n\n" + xato).c_str(), L"Xozmag Server",
+                        MB_ICONERROR);
+            if (!baza_arg.empty() || yol == oz_baza_yoli() || !bazani_och(oz_baza_yoli(), xato)) return 1;
+            yol = oz_baza_yoli();
+        }
+        server_porti = _wtoi((port_arg.empty() ? ini_ol(L"port", L"5577") : port_arg).c_str());
+        if (server_porti <= 0 || server_porti > 65535) server_porti = STANDART_PORT;
+        xavfsizlik_devori();
+        if (!server_boshla(server_porti, yol, xato)) {
+            MessageBoxW(nullptr, (L"Server ishga tushmadi.\n\n" + xato).c_str(), L"Xozmag Server", MB_ICONERROR);
+            return 1;
+        }
+        joriy = J_SERVER;
+    } else {
+        // Kassa: hamma narsa serverda — bu yerda faqat manzil va sessiya saqlanadi
+        baza.uzoq_qoy(true);
+        sessiya_tokeni() = U(ini_ol(L"token", L""));
+        joriy = J_ULANISH;
     }
 
     WNDCLASSEXW wc = {sizeof wc};
@@ -340,31 +424,37 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     wc.lpfnWndProc = jarayon;
     wc.hInstance = hi;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.lpszClassName = L"UlugbekXozmag";
+    wc.lpszClassName = sinf;
     wc.hIcon = LoadIconW(hi, MAKEINTRESOURCEW(1));
     wc.hIconSm = (HICON)LoadImageW(hi, MAKEINTRESOURCEW(1), IMAGE_ICON, 16, 16, 0);
     RegisterClassExW(&wc);
-    hOyna = CreateWindowExW(WS_EX_CONTROLPARENT, L"UlugbekXozmag", L"Ulug'bek Xozmag",
+    hOyna = CreateWindowExW(WS_EX_CONTROLPARENT, sinf, server_rejim ? L"Xozmag Server" : L"Ulug'bek Xozmag",
                             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
-                            1280, 760, nullptr, nullptr, hi, nullptr);
+                            server_rejim ? 900 : 1280, server_rejim ? 800 : 760, nullptr, nullptr, hi, nullptr);
     if (!gfx.boshla(hOyna)) {
         MessageBoxW(nullptr, L"Direct2D ishga tushmadi.", L"Xozmag", MB_ICONERROR);
         return 1;
     }
     ui.boshla(hOyna);
 
-    // Avval kirgan bo'lsa (14 kun ichida, saytdagi sessiya kabi) — to'g'ridan-to'g'ri ichkariga
-    wstring kirgan = sozlama("kirgan", L"");
-    size_t bo = kirgan.find(L'|');
-    if (bo != wstring::npos) {
-        long long id = wcstoll(kirgan.c_str(), nullptr, 10);
-        long long vaqt = wcstoll(kirgan.c_str() + bo + 1, nullptr, 10);
-        if (time(nullptr) - vaqt < 14 * 86400 && foydalanuvchi_ol(id, foydalanuvchi)) {
-            sozlama_yoz("kirgan", std::to_wstring(id) + L"|" + std::to_wstring(time(nullptr)));
-            joriy = J_BOSH;
+    if (server_rejim) {
+        server_kuzatuvchi(hOyna);
+        ShowWindow(hOyna, SW_SHOWNORMAL);
+    } else {
+        ShowWindow(hOyna, SW_SHOWMAXIMIZED);
+        UpdateWindow(hOyna);
+        // Saqlangan manzilga o'zi ulanadi; bo'lmasa — manzil so'raladi
+        wstring manzil = ini_ol(L"server", L"");
+        if (!manzil.empty()) {
+            HCURSOR k = SetCursor(LoadCursor(nullptr, IDC_WAIT));
+            wstring xato;
+            if (ulan(manzil, xato)) ulanganda();
+            else ulanish_ochildi(manzil + L" ga ulanib bo'lmadi: " + xato);
+            SetCursor(k);
+            InvalidateRect(hOyna, nullptr, FALSE);
         }
+        SetTimer(hOyna, 79, 5000, nullptr);
     }
-    ShowWindow(hOyna, SW_SHOWMAXIMIZED);
 
     // Skaner: USB skaner klaviatura bo'lib kodni juda tez yozadi va Enter bosadi
     // (static/js/skaner.js dagi qoida). Maydonga tushgan belgilar qaytariladi.
@@ -423,6 +513,8 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
         }
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+        // Sahifa tinmay chizilsa WM_TIMER kelmay qoladi — server tirikligi shu yerda ham tekshiriladi
+        if (!server_rejim && !tirikmi()) InvalidateRect(hOyna, nullptr, FALSE);
     }
     baza.yop();
     if (mutex) CloseHandle(mutex);

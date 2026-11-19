@@ -16,9 +16,29 @@ struct BazaXato : std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
+// Server bilan almashinadigan qiymat (masofaviy rejimda bog'lash va natija)
+struct Qiymat {
+    char tur = 0;  // 0 NULL, 1 butun, 2 son, 3 matn
+    long long i = 0;
+    double d = 0;
+    string s;
+};
+
+class Baza;
+
+// Tranzaksiya ichida natijasi kerak bo'lmagan so'rovlar navbatga yig'iladi va serverga
+// bir yo'la ketadi (Wi-Fi'da har bir so'rov uchun alohida kutmaslik uchun).
+struct Navbat {
+    string sql;
+    std::vector<Qiymat> par;
+    bool exec = false;  // ko'p iborali (sqlite3_exec)
+};
+
+// So'rov. Mahalliy rejimda — sqlite3_stmt. Masofaviy rejimda (kassa serverga IP orqali
+// ulangan) SQL va qiymatlar serverga yuboriladi, natija qatorlari bir yo'la keladi.
 class Sorov {
 public:
-    Sorov(sqlite3* db, const string& sql);
+    Sorov(Baza& b, const string& sql);
     ~Sorov();
     Sorov(const Sorov&) = delete;
     Sorov& operator=(const Sorov&) = delete;
@@ -42,8 +62,15 @@ public:
     bool bormi(int i);   // NULL emasmi
 
 private:
-    sqlite3* db_;
+    Baza& b_;
     sqlite3_stmt* st_ = nullptr;
+    // masofaviy
+    string sql_;
+    std::vector<Qiymat> par_, nat_;
+    size_t ustun_ = 0, qatorlar_ = 0, joriy_ = 0;
+    bool bajarildi_ = false;
+    void qoy(int i, Qiymat q);
+    const Qiymat& q(int i);
 };
 
 class Baza {
@@ -52,14 +79,24 @@ public:
     void och(const wstring& fayl);
     void yop();
     void bajar(const string& sql);
-    Sorov sor(const string& sql) { return Sorov(h_, sql); }
+    Sorov sor(const string& sql) { return Sorov(*this, sql); }
     long long oxirgi_id();
+    long long ozgarish();  // oxirgi so'rov o'zgartirgan qatorlar soni
     sqlite3* h() { return h_; }
     wstring fayl() const { return fayl_; }
+    // Masofaviy rejim: barcha so'rovlar serverga (aloqa.h)
+    void uzoq_qoy(bool ha) { uzoq_ = ha; }
+    bool uzoqmi() const { return uzoq_; }
+    long long uzoq_id = 0, uzoq_ozgarish = 0;
+    bool toplash() const { return toplash_; }
+    void navbatga(const string& sql, const std::vector<Qiymat>& par);
+    void yubor();  // navbatdagilarni serverga
 
 private:
     sqlite3* h_ = nullptr;
     wstring fayl_;
+    bool uzoq_ = false, toplash_ = false;
+    std::vector<Navbat> navbat_;
 };
 
 extern Baza baza;
@@ -226,7 +263,10 @@ struct Foydalanuvchi {
     bool superuser = false;
 };
 long long foydalanuvchilar_soni();
-bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f, wstring& xato);
+// sessiya=false — faqat parolni tekshirish (masofaviy rejimda yangi sessiya ochilmaydi)
+bool kirish_tekshir(const wstring& login, const wstring& parol, Foydalanuvchi& f, wstring& xato,
+                    bool sessiya = true);
+bool parol_mos(const wstring& parol, const string& hash);
 bool foydalanuvchi_ol(long long id, Foydalanuvchi& f);
 bool foydalanuvchi_yarat(const wstring& login, const wstring& parol, bool superuser, wstring& xato);
 bool parol_almashtir(long long id, const wstring& eski, const wstring& yangi, wstring& xato);

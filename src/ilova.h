@@ -2,6 +2,7 @@
 #pragma once
 #include "db.h"
 #include "ui.h"
+#include "chek_chop.h"  // ini_qiymat
 #include <ctime>
 
 // Saytdagi manzillar (urls.py) bilan mos sahifalar
@@ -10,6 +11,7 @@ enum Joy {
     J_QARZDORLAR, J_QARZDOR_ROYXAT, J_HUDUDLAR, J_HUDUD, J_KARTA, J_YANGI_QARZDOR, J_QIDIRISH,
     J_OMBOR, J_MAHSULOT, J_QURILMALAR, J_KASSALAR, J_AKKAUNT, J_QARZ_YOZ,
     J_EXCEL, J_YANGILANISHLAR, J_YANGILANISH, J_QATOR,
+    J_ULANISH, J_SERVER,
     J_SONI
 };
 
@@ -20,6 +22,18 @@ wstring versiya();
 extern Foydalanuvchi foydalanuvchi;
 extern bool sensor;  // sensorli rejim: raqamlar klaviaturasi ko'rinadi
 void chiqish();
+
+// sozlama.ini (shu kompyuterning o'zi: server manzili, sessiya, mavzu, printer)
+void ini_saqla(const wchar_t* kalit, const wstring& v);
+// Serverga ulangach: saqlangan sessiya bo'lsa ichkariga (uzilgan sahifaga), aks holda Kirish
+void ulanganda();
+void ulanish_ochildi(const wstring& xato);
+void ulanish_chiz(R r);
+void server_chiz(R r);
+void kirish_ochildi();
+void xavfsizlik_devori();
+bool administratormi();
+extern int server_porti;
 
 // Sahifa funksiyalari (har biri o'z .cpp faylida)
 void kirish_chiz(R r);
