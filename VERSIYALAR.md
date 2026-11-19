@@ -1,5 +1,16 @@
 # Versiyalar tarixi
 
+## 2.2.0 — 2026-11-19
+
+Server va kassa: IP orqali ulanish, UAC
+
+- Xozmag Server (Xozmag.exe --server): baza shu kompyuterda, kassalar 5577-portga ulanadi; oynada IP manzil va ulangan kassalar
+- Kassa ochilganda server IP manzilini so'raydi va saqlaydi; aloqa uzilsa yana so'raydi, qayta ulangach o'sha sahifaga qaytadi
+- Kirish server tomonida tekshiriladi, sessiya 14 kun; sessiyasiz so'rov bajarilmaydi
+- Excel qo'llash/bekor qilish serverda; tranzaksiya yozuvlari bir yo'la ketadi (8 924 qatorli qoralama 9 ta so'rov)
+- Server, kassa va o'rnatuvchi UAC (administrator) so'raydi; o'rnatish Program Files ga, o'rnatishda server yoki kassa tanlanadi
+- Tuzatildi: aylantirilganda maydonda eski piksellar; tovar formasida xato yozuvi ustma-ust
+
 ## 2.1.0 — 2026-11-19
 
 Ombor: Excel orqali yangilash va yangilanishlar — saytdagi bilan bir xil.
