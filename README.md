@@ -31,6 +31,27 @@ Server qaysi bazani ochadi:
 
 Jadvallar Django bilan aynan bir xil, shuning uchun exe va sayt bitta bazada ishlaydi.
 
+## Etiketka va tarozi (v2.4.0 dan)
+
+**Etiketka** — rasta uchun narx yorlig'i, saytdagi bilan bir xil: nomi, sotish narxi,
+Code 128 shtrix (tovar kodi 6 raqam) va «KOD 0027». Ochiladi: Ombor qatoridagi printer
+belgisi (nusxa = qoldiq), kirimdagi «Qo'shish va etiketka» (nusxa = kelgan dona/qadoq) va
+yangi tovar saqlangach. O'lchamlar: 40×30, 58×40, 56×40 (tarozi), 50×30, 30×20 mm.
+Chop etish shu kompyuterning Windows printeriga, qog'oz o'lchami yorliqniki; o'lcham va
+printer eslab qolinadi.
+
+**Rongta RLS1100C tarozisi (Ethernet)** — Qurilmalar sahifasida (Ombordagi «Taroziga
+yuborish» ham shu yerga olib keladi). Tarozi server kompyuteriga Ethernet orqali ulangan,
+shuning uchun aloqa sinovi va katalog yuborish **serverda** bajariladi. Qoidalar saytdagi
+`config/RONGTA.md` bilan bir xil: faqat kg, faol, so'mdagi narxli tovarlar; yuborishdan
+oldin zaxira, tugagach qayta o'qib solishtirish; boshqa PLU'lar yashiriladi. Tarozi IP
+manzili sahifada yoziladi (standart 192.168.1.110).
+
+Ishlab chiqaruvchining drayveri (`rtslabelscale.dll`, x86) dastur bilan tarqatilmaydi:
+server kompyuterida `%LOCALAPPDATA%\Xozmag\qurilma_drivers\rongta` ga qo'yiladi.
+Saytning `qurilma_drivers\rongta` papkasi va Rongta dasturi o'rnatilgan joy ham qidiriladi.
+Zaxira va hisobotlar: `%LOCALAPPDATA%\Xozmag\qurilmalar_data`.
+
 ## Printerlar (v2.3.0 dan)
 
 Dastur ochilishi bilan (kassa ham, server ham) shu kompyuterdagi **har bir printerga bir xil
@@ -56,10 +77,11 @@ so'ralsin» belgilangan bo'lsa. Kassada keyin «Qurilmalar → Barcha printerlar
 | Excel: yuklab olish, shablon, Excel'dan yangilash (qoralama/qo'llash/bekor), Yangilanishlar | saytdagidek (v2.1.0) |
 | Sotuvlar (kunlik cheklar), Hisobot | saytdagidek |
 | Login / Parol | saytdagidek |
-| Qurilmalar | chek va etiketka printeri (tarozi hali yo'q) |
+| Qurilmalar | chek va etiketka printeri, Rongta tarozi (Ethernet) |
 | Server–kassa: IP orqali ulanish, aloqa uzilsa qayta so'rash | v2.2.0 |
 | Ochilganda printerlar so'raladi (kassa ham, server ham) | v2.3.0 |
-| Etiketka, tarozi, tovar qaytarish, Kassalar | keyingi versiyalarda |
+| Etiketka (narx yorlig'i) va Rongta RLS1100C tarozi | v2.4.0 |
+| Tovar qaytarish, Kassalar | keyingi versiyalarda |
 
 ## O'rnatish va yig'ish
 

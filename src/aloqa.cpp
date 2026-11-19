@@ -24,7 +24,7 @@ constexpr unsigned PROTOKOL = 1;
 constexpr unsigned MAKS_KADR = 512u << 20;
 
 enum Amal : unsigned char {
-    A_SALOM = 1, A_SONI, A_KIRISH, A_TOKEN, A_BIRINCHI, A_SQL, A_EXEC, A_PING, A_CHIQISH, A_TOPLAM, A_AMAL, A_TOQNASH
+    A_SALOM = 1, A_SONI, A_KIRISH, A_TOKEN, A_BIRINCHI, A_SQL, A_EXEC, A_PING, A_CHIQISH, A_TOPLAM, A_AMAL, A_TOQNASH, A_TAROZI
 };
 enum Javob : unsigned char { J_OK = 0, J_XATO = 1, J_RUXSAT = 2 };
 
@@ -329,6 +329,21 @@ bool uzoq_amal(ServerAmal amal, long long id, std::vector<wstring>& xatolar) {
         xatolar.clear();
         for (unsigned n = o.u32(); n; --n) xatolar.push_back(W(o.s()));
         return ok;
+    } catch (const BuzuqKadr&) {
+        aloqa_yiqildi();
+    }
+}
+
+string uzoq_tarozi(unsigned char amal, const string& soz) {
+    Yoz y;
+    y.u8(A_TAROZI).u8(amal).s(soz);
+    string j = sora(y.b, 60000);  // aloqa sinovi — 20 soniyagacha
+    try {
+        Oqi o(j);
+        unsigned char h = o.u8();
+        if (h == J_RUXSAT) throw BazaXato("Serverda kirilmagan (sessiya tugagan)");
+        if (h != J_OK) throw BazaXato(o.s());
+        return o.s();
     } catch (const BuzuqKadr&) {
         aloqa_yiqildi();
     }
@@ -701,6 +716,20 @@ string bajar(Baza& b, Ulanish& u, long long& f, string& tok, const string& kadr)
             Yoz y;
             y.u8(J_OK).u8(ok ? 1 : 0).u32((unsigned)xatolar.size());
             for (auto& x : xatolar) y.s(U(x));
+            return y.b;
+        }
+        case A_TAROZI: {
+            if (!f) return string(1, (char)J_RUXSAT);
+            unsigned char amal = o.u8();
+            string soz = o.s();
+            string javob;
+            if (amal == TA_HOLAT || amal == TA_YUBOR) {
+                AmalQulf q;  // tarozi kodi beriladi — serverning asosiy bazasida yoziladi
+                javob = tarozi_bajar(amal, soz);
+            } else
+                javob = tarozi_bajar(amal, soz);
+            Yoz y;
+            y.u8(J_OK).s(javob);
             return y.b;
         }
         case A_TOQNASH: {

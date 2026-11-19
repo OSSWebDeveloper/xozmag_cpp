@@ -35,6 +35,11 @@ void uzoq_toplam(const std::vector<Navbat>& n, long long& ozgarish, long long& o
 // alohida so'rov ketmaydi. amal: 1 qo'llash, 2 bekor qilish.
 enum ServerAmal { SA_QOLLASH = 1, SA_BEKOR = 2 };
 bool uzoq_amal(ServerAmal amal, long long id, std::vector<wstring>& xatolar);
+// Rongta tarozisi (tarozi.cpp) — server kompyuteriga Ethernet orqali ulangan, amallar serverda.
+// soz — tarozi IP manzili. Javob: tab bilan ajratilgan qatorlar (UTF-8).
+enum TaroziAmal { TA_HOLAT = 1, TA_TEKSHIR = 2, TA_YUBOR = 3, TA_JARAYON = 4 };
+string uzoq_tarozi(unsigned char amal, const string& soz);
+string tarozi_bajar(unsigned char amal, const string& soz);
 struct Toqnash;
 std::vector<Toqnash> uzoq_toqnashuvlar(long long id);
 

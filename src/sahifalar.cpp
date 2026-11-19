@@ -397,7 +397,11 @@ bool tanlov_karta(const string& id, R r, const wstring& nom, const wstring& izoh
 static std::vector<wstring> q_printerlar, q_etk_royxat;
 static int q_printer = 0, q_etk = 0, q_eni = 1;
 
+static float q_tarozi_boy = 600;
+
 void qurilmalar_ochildi(long long) {
+    ui.scroll_tepaga("qr/s");
+    tarozi_ochildi();
     q_printerlar = {L"— Chek chop etilmasin —"};
     for (auto& p : printerlar()) q_printerlar.push_back(p);
     wstring joriy = ini_qiymat(L"chek_printer");
@@ -415,10 +419,12 @@ void qurilmalar_ochildi(long long) {
 }
 
 void qurilmalar_chiz(R r) {
-    float en = std::min(760.f, r.w);
+    float en = std::min(900.f, r.w);
     R s = {r.x + (r.w - en) / 2, r.y, en, r.h};
-    sarlavha(s, L"Qurilmalar", L"printerlar");
-    R q = {s.x, s.y, s.w, 14 + 4 * (22 + 50 + 14) + 50 + 14};
+    sarlavha(s, L"Qurilmalar", L"printerlar va tarozi");
+    R q = {s.x, s.y, s.w - 12, 14 + 4 * (22 + 50 + 14) + 50 + 14};
+    // Sahifa aylantiriladi: printerlar, ostida Ethernet tarozi
+    ui.scroll("qr/s", {s.x, s.y, s.w, s.h}, q.h + 14 + q_tarozi_boy + 4);
     quti(q);
     float x = q.x + 14, w = q.w - 28, y = q.y + 14;
     gfx.matn({x, y, w, 17}, L"Chek printeri (yakunlangan chek shu printerga avtomatik chiqadi)", 12, 600, M->matn2);
@@ -452,5 +458,12 @@ void qurilmalar_chiz(R r) {
         else ui.xabar(xato, X_XATO);
     }
     if (ui.tugma("qr/hammasi", {x + 236, y, 260, 50}, L"Barcha printerlar", ODDIY, "i-printer")) ot(J_PRINTER);
-    gfx.matn({x + 512, y, w - 512, 50}, L"Tarozi — keyingi versiyada.", 13, 400, M->matn3);
+    R t = {q.x, q.p() + 14, q.w, q_tarozi_boy};
+    quti(t);
+    float b = tarozi_panel(t.x, t.y, t.w);
+    if (std::abs(b - q_tarozi_boy) > .5f) {
+        q_tarozi_boy = b;
+        ui.qayta = true;
+    }
+    ui.scroll_tugat();
 }

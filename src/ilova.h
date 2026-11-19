@@ -11,7 +11,7 @@ enum Joy {
     J_QARZDORLAR, J_QARZDOR_ROYXAT, J_HUDUDLAR, J_HUDUD, J_KARTA, J_YANGI_QARZDOR, J_QIDIRISH,
     J_OMBOR, J_MAHSULOT, J_QURILMALAR, J_KASSALAR, J_AKKAUNT, J_QARZ_YOZ,
     J_EXCEL, J_YANGILANISHLAR, J_YANGILANISH, J_QATOR,
-    J_ULANISH, J_SERVER, J_PRINTER,
+    J_ULANISH, J_SERVER, J_PRINTER, J_ETIKETKA,
     J_SONI
 };
 
@@ -40,6 +40,18 @@ void printer_ochildi(bool boshida);
 void printer_chiz(R r);
 wstring printer_qisqacha();
 void printerlar_tayyor();           // main.cpp: «Davom etish» bosilganda
+wstring malumot_papka();            // sozlama.ini turgan papka (hisobot, drayverlar)
+
+// Etiketka (etiketka.cpp): rasta uchun narx yorlig'i
+constexpr int ETIKETKA_KOPI = 500;  // bir yo'la chop etiladigan yorliqlar chegarasi
+// Nechta yorliq kerak: sanaladigan tovarning har biriga bittadan (kg, metr, litr — bitta)
+int etiketka_soni(const Tovar& t, double miqdor, const wstring& birlik);
+void etiketka_och(long long tovar_id, int soni);
+void etiketka_ochildi(long long id);
+void etiketka_chiz(R r);
+// Rongta tarozisi paneli (tarozi.cpp) — Qurilmalar sahifasida
+void tarozi_ochildi();
+float tarozi_panel(float x, float y, float w);  // chizilgan balandlik
 
 // Sahifa funksiyalari (har biri o'z .cpp faylida)
 void kirish_chiz(R r);

@@ -58,6 +58,10 @@ static void ini_yoz(const wchar_t* kalit, const wstring& v) {
     WritePrivateProfileStringW(L"xozmag", kalit, v.c_str(), ini_yoli.c_str());
 }
 
+wstring malumot_papka() {
+    size_t i = ini_yoli.find_last_of(L"\\/");
+    return i == wstring::npos ? L"." : ini_yoli.substr(0, i);
+}
 wstring ini_qiymat(const wchar_t* kalit, const wchar_t* standart) { return ini_ol(kalit, standart); }
 void ini_saqla(const wchar_t* kalit, const wstring& v) { ini_yoz(kalit, v); }
 void ini_qiymat_yoz(const wchar_t* kalit, const wstring& v) { ini_yoz(kalit, v); }
@@ -82,6 +86,7 @@ void ot(Joy j, long long p) {
     switch (j) {
         case J_KIRISH: kirish_ochildi(); break;
         case J_PRINTER: printer_ochildi(printer_kerak); break;
+        case J_ETIKETKA: etiketka_ochildi(p); break;
         case J_SOTUV: sotuv_ochildi(p); break;
         case J_QARZ_YOZ: qarz_yozish_ochildi(p); break;
         case J_QARZDORLAR: qarzdorlar_ochildi(p); break;
@@ -172,7 +177,7 @@ static bool faolmi(Joy band) {
         case J_HISOBOT: return joriy == J_HISOBOT;
         case J_QARZDORLAR:
             return (joriy >= J_QARZDORLAR && joriy <= J_QIDIRISH) || joriy == J_QARZ_YOZ;
-        case J_OMBOR: return joriy == J_OMBOR || joriy == J_MAHSULOT || (joriy >= J_EXCEL && joriy <= J_QATOR);
+        case J_OMBOR: return joriy == J_OMBOR || joriy == J_MAHSULOT || joriy == J_ETIKETKA || (joriy >= J_EXCEL && joriy <= J_QATOR);
         default: return joriy == band;
     }
 }
@@ -289,6 +294,7 @@ static void chiz() {
             case J_MAHSULOT: mahsulot_chiz(sahifa); break;
             case J_AKKAUNT: akkaunt_chiz(sahifa); break;
             case J_QURILMALAR: qurilmalar_chiz(sahifa); break;
+            case J_ETIKETKA: etiketka_chiz(sahifa); break;
             case J_EXCEL: excel_yuklash_chiz(sahifa); break;
             case J_YANGILANISHLAR: yangilanishlar_chiz(sahifa); break;
             case J_YANGILANISH: yangilanish_chiz(sahifa); break;

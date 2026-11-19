@@ -107,8 +107,11 @@ void kirim_oynasi() {
         ombor_eskirdi();
         ui.xabar(t.nom + L": +" + (olishda ? son(v) + L" " + t.olish_birligi + L" = " : L"") + son(sotuvda) + L" " +
                  t.birlik + L" omborga qo'shildi.");
-        if (etk) ui.xabar(L"Etiketka chop etish dasturning keyingi versiyasida qo'shiladi.", X_INFO);
         kirim_id = 0;
+        if (etk) {
+            etiketka_och(t.id, etiketka_soni(t, v, olishda ? t.olish_birligi : t.birlik));
+            return;
+        }
         yangila(false);
     }
 }
@@ -278,7 +281,6 @@ void ombor_chiz(R r) {
         bx += bw + 8;
         return b;
     };
-    const wchar_t* keyin = L"Bu amal dasturning keyingi versiyasida qo'shiladi (hozircha saytda).";
     if (kichik_t("om/eks", L"Omborni Excel'ga yuklab olish", YASHIL, "i-yuklab-ol")) ombor_eksport(natija, filtr.kam);
     if (kichik_t("om/exy", L"Excel'dan yangilash", ASOSIY, "i-yuklash")) ot(J_EXCEL);
     {
@@ -288,7 +290,8 @@ void ombor_chiz(R r) {
         if (GetTickCount() - vaqt > 3000) { qor = qoralamalar_soni(); vaqt = GetTickCount(); }
         wstring nt = qor > 0 ? std::to_wstring(qor) + L" qoralama" : L"";
         float nw = nt.empty() ? 0 : gfx.matn_eni(nt, 11, 600) + 22;
-        float bw = gfx.matn_eni(L"Yangilanishlar", 13, 600) + 22 + 22 + nw;
+        // matn markazda turadi: nishon uchun ikki tomonga joy (aks holda ustma-ust tushadi)
+        float bw = gfx.matn_eni(L"Yangilanishlar", 13, 600) + 22 + 22 + 2 * nw;
         bool b = ui.tugma("om/yan", {bx, y, bw, 34}, L"Yangilanishlar", TINCH, "i-tarix", true);
         if (!nt.empty()) {
             // tugma matni markazda — nishonni o'ng chetga qo'yamiz
@@ -298,7 +301,11 @@ void ombor_chiz(R r) {
         if (b) ot(J_YANGILANISHLAR);
     }
     if (kichik_t("om/sha", L"Bo'sh shablon", TINCH, nullptr)) ombor_shablon();
-    if (kichik_t("om/tar", L"Taroziga yuborish", TINCH, nullptr)) ui.xabar(keyin, X_INFO);
+    if (kichik_t("om/tar", L"Taroziga yuborish", TINCH, nullptr)) {
+        ot(J_QURILMALAR);  // Rongta tarozi paneli Qurilmalar sahifasida
+        ui.scroll_korsat("qr/s", 500, 700);
+        return;
+    }
     y += 34 + 14;
     if (tugagan) {
         R o = {x, y, w, 40};
@@ -387,8 +394,10 @@ void ombor_chiz(R r) {
         float kw = gfx.matn_eni(L"Kirim", 13, 600) + 22 + 22;
         bool kir = ui.tugma("om/kr/" + sid, {ax, ay, kw, 34}, L"Kirim", YASHIL, "i-kirim", true);
         ax += kw + 6;
-        if (ui.tugma("om/pr/" + sid, {ax, ay, 38, 34}, L"", TINCH, "i-printer", true))
-            ui.xabar(L"Etiketka chop etish dasturning keyingi versiyasida qo'shiladi.", X_INFO);
+        if (ui.tugma("om/pr/" + sid, {ax, ay, 38, 34}, L"", TINCH, "i-printer", true)) {
+            etiketka_och(t.id, etiketka_soni(t, t.qoldiq, t.birlik));
+            break;
+        }
         ax += 44;
         if (ui.tugma("om/td/" + sid, {ax, ay, 38, 34}, L"", TINCH, "i-qalam", true)) {
             ot(J_MAHSULOT, t.id);
@@ -653,5 +662,11 @@ void mahsulot_chiz(R r) {
     ombor_keshini_tashla();
     ombor_eskirdi();
     ui.xabar(mf_id ? L"Mahsulot saqlandi." : L"Yangi mahsulot qo'shildi.");
-    ot(J_OMBOR);
+    if (mf_id) {
+        ot(J_OMBOR);
+        return;
+    }
+    // Kod tayyor: endi etiketkasini chop etib tovarlarga yopishtirish qoladi
+    // (nusxalar — kelgan qadoqlar yoki donalar soni, saytdagi kabi)
+    etiketka_och(id, mf_ikki && qadoq > 0 ? etiketka_soni(t, qadoq, t.olish_birligi) : etiketka_soni(t, qoldiq, t.birlik));
 }
