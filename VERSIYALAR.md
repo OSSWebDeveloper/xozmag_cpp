@@ -4,6 +4,12 @@
 
 Printerlar: dastur ochilganda (kassa ham, server ham) har bir printerga bir xil savol — chek, etiketka yoki ishlatilmaydi
 
+- Har bir printer qatorida: Chek / Etiketka / Ishlatilmaydi va «Sinov» (shu printerga sinov varag'i)
+- Javob saqlanadi; yangi printer paydo bo'lsa, tanlangani o'chirilsa yoki «har safar» belgilansa yana so'raladi
+- Kassada avval printerlar, keyin server IP manzili; serverda avval printerlar, keyin server oynasi
+- Qurilmalar: etiketka printeri tanlovi va «Barcha printerlar» tugmasi; server oynasida «Printerlar» qatori
+- sozlama.ini endi UTF-16: kirillcha printer nomlari buzilmaydi (eski fayl o'zi o'giriladi)
+
 ## 2.2.0 — 2026-11-19
 
 Server va kassa: IP orqali ulanish, UAC

@@ -3,7 +3,8 @@
 #include "db.h"
 
 wstring chek_matni(const Chek& c);
-bool chek_chop(const Chek& c, wstring& xato);
+// printer bo'sh bo'lsa — sozlamadagi chek printeri (u ham bo'lmasa Windows standarti)
+bool chek_chop(const Chek& c, wstring& xato, const wstring& printer = L"");
 std::vector<wstring> printerlar();
 // Sozlamada chek printeri tanlangan bo'lsa yakunlangan chekni chop etadi
 void chekni_avtomatik_chop(long long sotuv_id);

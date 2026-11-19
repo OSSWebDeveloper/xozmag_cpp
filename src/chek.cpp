@@ -99,8 +99,8 @@ std::vector<wstring> printerlar() {
     return r;
 }
 
-bool chek_chop(const Chek& c, wstring& xato) {
-    wstring printer = ini_qiymat(L"chek_printer");
+bool chek_chop(const Chek& c, wstring& xato, const wstring& tanlangan) {
+    wstring printer = tanlangan.empty() ? ini_qiymat(L"chek_printer") : tanlangan;
     if (printer.empty()) {
         wchar_t b[512];
         DWORD n = 512;

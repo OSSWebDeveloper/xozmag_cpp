@@ -31,6 +31,18 @@ Server qaysi bazani ochadi:
 
 Jadvallar Django bilan aynan bir xil, shuning uchun exe va sayt bitta bazada ishlaydi.
 
+## Printerlar (v2.3.0 dan)
+
+Dastur ochilishi bilan (kassa ham, server ham) shu kompyuterdagi **har bir printerga bir xil
+savol** chiqadi: «Chek», «Etiketka» yoki «Ishlatilmaydi». «Sinov» tugmasi o'sha printerga
+kichik sinov varag'ini yuboradi — qaysi printer qaysiligini bilish uchun. Chek ham, etiketka
+ham bittadan printerga beriladi.
+
+Javob shu kompyuterning sozlama.ini sida saqlanadi. Keyingi safar so'ralmaydi, faqat:
+yangi printer paydo bo'lsa, tanlangan printer o'chirilsa yoki «Har safar dastur ochilganda
+so'ralsin» belgilangan bo'lsa. Kassada keyin «Qurilmalar → Barcha printerlar», serverda
+«Printerlar → O'zgartirish» orqali ham ochiladi.
+
 ## Bo'limlar
 
 | Bo'lim | Holat |
@@ -44,8 +56,9 @@ Jadvallar Django bilan aynan bir xil, shuning uchun exe va sayt bitta bazada ish
 | Excel: yuklab olish, shablon, Excel'dan yangilash (qoralama/qo'llash/bekor), Yangilanishlar | saytdagidek (v2.1.0) |
 | Sotuvlar (kunlik cheklar), Hisobot | saytdagidek |
 | Login / Parol | saytdagidek |
-| Qurilmalar | hozircha faqat chek printeri |
+| Qurilmalar | chek va etiketka printeri (tarozi hali yo'q) |
 | Server–kassa: IP orqali ulanish, aloqa uzilsa qayta so'rash | v2.2.0 |
+| Ochilganda printerlar so'raladi (kassa ham, server ham) | v2.3.0 |
 | Etiketka, tarozi, tovar qaytarish, Kassalar | keyingi versiyalarda |
 
 ## O'rnatish va yig'ish

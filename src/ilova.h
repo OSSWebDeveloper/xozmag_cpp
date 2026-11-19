@@ -11,7 +11,7 @@ enum Joy {
     J_QARZDORLAR, J_QARZDOR_ROYXAT, J_HUDUDLAR, J_HUDUD, J_KARTA, J_YANGI_QARZDOR, J_QIDIRISH,
     J_OMBOR, J_MAHSULOT, J_QURILMALAR, J_KASSALAR, J_AKKAUNT, J_QARZ_YOZ,
     J_EXCEL, J_YANGILANISHLAR, J_YANGILANISH, J_QATOR,
-    J_ULANISH, J_SERVER,
+    J_ULANISH, J_SERVER, J_PRINTER,
     J_SONI
 };
 
@@ -34,6 +34,12 @@ void kirish_ochildi();
 void xavfsizlik_devori();
 bool administratormi();
 extern int server_porti;
+// Printerlar sahifasi (printer.cpp): har bir printerga «chek / etiketka / ishlatilmaydi»
+bool printer_soralsinmi();          // ochilganda so'rash kerakmi (yangi yoki yo'qolgan printer)
+void printer_ochildi(bool boshida);
+void printer_chiz(R r);
+wstring printer_qisqacha();
+void printerlar_tayyor();           // main.cpp: «Davom etish» bosilganda
 
 // Sahifa funksiyalari (har biri o'z .cpp faylida)
 void kirish_chiz(R r);

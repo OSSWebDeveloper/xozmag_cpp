@@ -394,8 +394,8 @@ bool tanlov_karta(const string& id, R r, const wstring& nom, const wstring& izoh
 // ======================= Qurilmalar (hozircha: chek printeri) =======================
 #include "chek_chop.h"
 
-static std::vector<wstring> q_printerlar;
-static int q_printer = 0, q_eni = 1;
+static std::vector<wstring> q_printerlar, q_etk_royxat;
+static int q_printer = 0, q_etk = 0, q_eni = 1;
 
 void qurilmalar_ochildi(long long) {
     q_printerlar = {L"— Chek chop etilmasin —"};
@@ -404,6 +404,12 @@ void qurilmalar_ochildi(long long) {
     q_printer = 0;
     for (size_t i = 1; i < q_printerlar.size(); ++i)
         if (q_printerlar[i] == joriy) q_printer = (int)i;
+    q_etk_royxat = {L"— Etiketka chop etilmasin —"};
+    for (auto& p : printerlar()) q_etk_royxat.push_back(p);
+    wstring etk = ini_qiymat(L"etiketka_printer");
+    q_etk = 0;
+    for (size_t i = 1; i < q_etk_royxat.size(); ++i)
+        if (q_etk_royxat[i] == etk) q_etk = (int)i;
     q_eni = ini_qiymat(L"chek_eni", L"80") == L"58" ? 0 : 1;
     ui.qiymat_qoy("qr/izoh", ini_qiymat(L"chek_izoh"));
 }
@@ -411,14 +417,19 @@ void qurilmalar_ochildi(long long) {
 void qurilmalar_chiz(R r) {
     float en = std::min(760.f, r.w);
     R s = {r.x + (r.w - en) / 2, r.y, en, r.h};
-    sarlavha(s, L"Qurilmalar", L"chek printeri");
-    R q = {s.x, s.y, s.w, 14 + 3 * (22 + 50 + 14) + 50 + 14};
+    sarlavha(s, L"Qurilmalar", L"printerlar");
+    R q = {s.x, s.y, s.w, 14 + 4 * (22 + 50 + 14) + 50 + 14};
     quti(q);
     float x = q.x + 14, w = q.w - 28, y = q.y + 14;
     gfx.matn({x, y, w, 17}, L"Chek printeri (yakunlangan chek shu printerga avtomatik chiqadi)", 12, 600, M->matn2);
     y += 22;
     if (ui.tanlov("qr/printer", {x, y, w, 50}, q_printerlar, q_printer))
         ini_qiymat_yoz(L"chek_printer", q_printer ? q_printerlar[q_printer] : L"");
+    y += 50 + 14;
+    gfx.matn({x, y, w, 17}, L"Etiketka printeri", 12, 600, M->matn2);
+    y += 22;
+    if (ui.tanlov("qr/etk", {x, y, w, 50}, q_etk_royxat, q_etk))
+        ini_qiymat_yoz(L"etiketka_printer", q_etk ? q_etk_royxat[q_etk] : L"");
     y += 50 + 14;
     gfx.matn({x, y, w, 17}, L"Chek eni", 12, 600, M->matn2);
     y += 22;
@@ -440,5 +451,6 @@ void qurilmalar_chiz(R r) {
         else if (chek_chop(c, xato)) ui.xabar(L"Sinov cheki printerga yuborildi.");
         else ui.xabar(xato, X_XATO);
     }
-    gfx.matn({x + 236, y, w - 236, 50}, L"Etiketka printeri va tarozi — keyingi versiyada.", 13, 400, M->matn3);
+    if (ui.tugma("qr/hammasi", {x + 236, y, 260, 50}, L"Barcha printerlar", ODDIY, "i-printer")) ot(J_PRINTER);
+    gfx.matn({x + 512, y, w - 512, 50}, L"Tarozi — keyingi versiyada.", 13, 400, M->matn3);
 }

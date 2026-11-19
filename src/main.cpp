@@ -16,6 +16,7 @@ static long long qaytish_param = 0;
 static HWND hOyna;
 static wstring ini_yoli;
 static bool server_rejim = false;
+static bool printer_kerak = false;  // ochilganda printerlar hali so'ralmagan
 
 wstring versiya() { return XOZMAG_VERSIYA; }
 Joy joriy_joy() { return joriy; }
@@ -23,9 +24,35 @@ Joy joriy_joy() { return joriy; }
 // ---------- Sozlamalar (brauzerdagi localStorage o'rnida) ----------
 
 static wstring ini_ol(const wchar_t* kalit, const wchar_t* standart) {
-    wchar_t b[512];
-    GetPrivateProfileStringW(L"xozmag", kalit, standart, b, 512, ini_yoli.c_str());
+    wchar_t b[8192];  // printerlar ro'yxati uzun bo'lishi mumkin
+    GetPrivateProfileStringW(L"xozmag", kalit, standart, b, 8192, ini_yoli.c_str());
     return b;
+}
+// Windows ini'ni UTF-16 bo'lsagina Unicode yozadi (aks holda kirillcha printer nomlari
+// «?» bo'lib qoladi). Yangi faylni BOM bilan yaratamiz, eski ANSI faylni o'giramiz.
+static void ini_unicode() {
+    HANDLE f = CreateFileW(ini_yoli.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+    std::string eski;
+    if (f != INVALID_HANDLE_VALUE) {
+        DWORD n = GetFileSize(f, nullptr), o = 0;
+        eski.resize(n);
+        if (n) ReadFile(f, eski.data(), n, &o, nullptr);
+        CloseHandle(f);
+        eski.resize(o);
+        if (eski.size() >= 2 && (unsigned char)eski[0] == 0xFF && (unsigned char)eski[1] == 0xFE) return;
+    }
+    wstring w(1, (wchar_t)0xFEFF);
+    if (!eski.empty()) {
+        int n = MultiByteToWideChar(CP_ACP, 0, eski.data(), (int)eski.size(), nullptr, 0);
+        wstring t(n, 0);
+        MultiByteToWideChar(CP_ACP, 0, eski.data(), (int)eski.size(), t.data(), n);
+        w += t;
+    }
+    f = CreateFileW(ini_yoli.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+    if (f == INVALID_HANDLE_VALUE) return;
+    DWORD o = 0;
+    WriteFile(f, w.data(), (DWORD)(w.size() * sizeof(wchar_t)), &o, nullptr);
+    CloseHandle(f);
 }
 static void ini_yoz(const wchar_t* kalit, const wstring& v) {
     WritePrivateProfileStringW(L"xozmag", kalit, v.c_str(), ini_yoli.c_str());
@@ -46,13 +73,15 @@ static void mavzu_qoy(bool kechki) {
 // ---------- O'tish ----------
 
 void ot(Joy j, long long p) {
-    if (server_rejim) j = J_SERVER;
+    if (printer_kerak) j = J_PRINTER;  // dastur ochilganda birinchi — printerlar
+    else if (server_rejim) j = j == J_PRINTER ? J_PRINTER : J_SERVER;
     else if (!ulangan()) j = J_ULANISH;  // server yo'q — avval manzil
     else if (j != J_KIRISH && j != J_ULANISH && !foydalanuvchi.id) j = J_KIRISH;
     joriy = j;
     joriy_param = p;
     switch (j) {
         case J_KIRISH: kirish_ochildi(); break;
+        case J_PRINTER: printer_ochildi(printer_kerak); break;
         case J_SOTUV: sotuv_ochildi(p); break;
         case J_QARZ_YOZ: qarz_yozish_ochildi(p); break;
         case J_QARZDORLAR: qarzdorlar_ochildi(p); break;
@@ -100,6 +129,32 @@ void ulanganda() {
     }
     qaytish_joy = J_BOSH;
     qaytish_param = 0;
+}
+
+// Saqlangan manzilga o'zi ulanadi; bo'lmasa — manzil so'raladi
+static void avto_ulan() {
+    joriy = J_ULANISH;
+    wstring manzil = ini_ol(L"server", L"");
+    if (!manzil.empty()) {
+        HCURSOR k = SetCursor(LoadCursor(nullptr, IDC_WAIT));
+        wstring xato;
+        if (ulan(manzil, xato)) ulanganda();
+        else ulanish_ochildi(manzil + L" ga ulanib bo'lmadi: " + xato);
+        SetCursor(k);
+    }
+    ui.qayta = true;
+    InvalidateRect(hOyna, nullptr, FALSE);
+}
+
+void printerlar_tayyor() {
+    bool boshida = printer_kerak;
+    printer_kerak = false;
+    if (server_rejim) ot(J_SERVER);
+    else if (boshida) avto_ulan();
+    else {
+        ui.xabar(L"Printerlar saqlandi.");
+        ot(J_QURILMALAR);
+    }
 }
 
 // ---------- Yon menyu (.yon-menyu) ----------
@@ -204,7 +259,9 @@ static void chiz() {
         joriy = J_ULANISH;
         SetFocus(hOyna);
     }
-    if (joriy == J_SERVER) {
+    if (joriy == J_PRINTER) {
+        printer_chiz(hammasi);
+    } else if (joriy == J_SERVER) {
         server_chiz(hammasi);
     } else if (joriy == J_ULANISH) {
         ulanish_chiz(hammasi);
@@ -391,6 +448,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     }
     SHCreateDirectoryExW(nullptr, malumot.c_str(), nullptr);
     ini_yoli = malumot + L"\\sozlama.ini";
+    ini_unicode();
     M = ini_ol(L"mavzu", L"kechki") == L"kunduzgi" ? &KUNDUZGI : &KECHKI;
     sensor = ini_ol(L"sensor", L"0") == L"1";
 
@@ -436,6 +494,12 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
         return 1;
     }
     ui.boshla(hOyna);
+    // Kassa ham, server ham: ochilganda avval printerlar so'raladi (kerak bo'lsa)
+    printer_kerak = printer_soralsinmi();
+    if (printer_kerak) {
+        joriy = J_PRINTER;
+        printer_ochildi(true);
+    }
 
     if (server_rejim) {
         server_kuzatuvchi(hOyna);
@@ -443,16 +507,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int) {
     } else {
         ShowWindow(hOyna, SW_SHOWMAXIMIZED);
         UpdateWindow(hOyna);
-        // Saqlangan manzilga o'zi ulanadi; bo'lmasa — manzil so'raladi
-        wstring manzil = ini_ol(L"server", L"");
-        if (!manzil.empty()) {
-            HCURSOR k = SetCursor(LoadCursor(nullptr, IDC_WAIT));
-            wstring xato;
-            if (ulan(manzil, xato)) ulanganda();
-            else ulanish_ochildi(manzil + L" ga ulanib bo'lmadi: " + xato);
-            SetCursor(k);
-            InvalidateRect(hOyna, nullptr, FALSE);
-        }
+        if (!printer_kerak) avto_ulan();
         SetTimer(hOyna, 79, 5000, nullptr);
     }
 

@@ -269,6 +269,15 @@ void server_chiz(R r) {
     }
     y += 60 + 14;
 
+    // Printerlar (dastur ochilganda so'raladi)
+    R pq = {x0, y, en, 60};
+    quti(pq);
+    gfx.matn({pq.x + 18, pq.y, 90, 60}, L"Printerlar", 13, 600, M->matn2);
+    gfx.matn({pq.x + 110, pq.y, pq.w - 110 - 18 - 160, 60}, printer_qisqacha(), 13, 500, M->matn);
+    if (ui.tugma("server/printer", {pq.o() - 18 - 140, pq.y + 10, 140, 40}, L"O'zgartirish", TINCH, nullptr, true))
+        ot(J_PRINTER);
+    y += 60 + 14;
+
     // Ulangan kassalar
     float qb = 50 + std::max<size_t>(mijozlar.size(), 1) * 40 + 10;
     R m = {x0, y, en, std::max(qb, 100.f)};
