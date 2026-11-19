@@ -1,5 +1,9 @@
 # Versiyalar tarixi
 
+## 2.5.0 — 2026-11-19
+
+Tovar qaytarish va Kassalar bo'limi (saytdagi bilan bir xil)
+
 ## 2.4.0 — 2026-11-19
 
 Etiketka bo'limi va Rongta RLS1100C tarozisi (Ethernet orqali, serverda)
