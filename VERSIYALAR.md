@@ -1,5 +1,9 @@
 # Versiyalar tarixi
 
+## 2.3.0 — 2026-11-19
+
+Printerlar: dastur ochilganda (kassa ham, server ham) har bir printerga bir xil savol — chek, etiketka yoki ishlatilmaydi
+
 ## 2.2.0 — 2026-11-19
 
 Server va kassa: IP orqali ulanish, UAC
