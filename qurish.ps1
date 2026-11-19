@@ -44,8 +44,12 @@ $jarayonlar = @(); $obyektlar = @()
 foreach ($f in Get-ChildItem src\*.cpp) {
     $o = "build\rel\$($f.BaseName).o"
     $obyektlar += $o
-    $jarayonlar += Start-Process $gpp -ArgumentList ($umumiy + @('-c', "`"$($f.FullName)`"", '-o', $o)) `
+    # 4 GB xotirada hammasi birdan -O2 bilan sig'maydi (cc1plus: out of memory) — ko'pi bilan 4 ta
+    while (@($jarayonlar | Where-Object { -not $_.HasExited }).Count -ge 4) { Start-Sleep -Milliseconds 300 }
+    $p = Start-Process $gpp -ArgumentList ($umumiy + @('-c', "`"$($f.FullName)`"", '-o', $o)) `
         -NoNewWindow -PassThru
+    $null = $p.Handle  # tutqich saqlanmasa tugagan jarayonning ExitCode'i bo'sh qaytadi
+    $jarayonlar += $p
 }
 $jarayonlar | Wait-Process
 foreach ($j in $jarayonlar) { if ($j.ExitCode -ne 0) { throw "Kompilyatsiya xatosi (yuqoriga qarang)" } }
