@@ -30,7 +30,14 @@ Write-Host "Xozmag v$v yig'ilmoqda..."
 Ishlat $windres @('--use-temp-file', '-I', 'build', '-I', 'res', 'res\xozmag.rc', '-O', 'coff', '-o', 'build\xozmag_res.o')
 $umumiy = @('-std=c++20', '-O2', '-Wall', '-Wno-unused-parameter', '-Wno-missing-field-initializers',
             '-municode', '-D_WIN32_WINNT=0x0A00', '-DNTDDI_VERSION=0x0A000005', '-Ibuild', '-Isrc')
-$bog = @('-municode', '-mwindows', '-static', '-s')
+# MinGW har bir exe'ga o'zining asInvoker manifestini (default-manifest.o) qo'shadi — bizniki
+# (requireAdministrator, UAC) bilan ikkita bo'lib qoladi. -B orqali bo'sh nusxasi beriladi.
+New-Item -ItemType Directory -Force build\bosh | Out-Null
+if (-not (Test-Path build\bosh\default-manifest.o)) {
+    '' | Set-Content -Encoding ASCII build\bosh\bosh.c
+    Ishlat (Join-Path $GCC 'gcc.exe') @('-c', 'build\bosh\bosh.c', '-o', 'build\bosh\default-manifest.o')
+}
+$bog = @('-municode', '-mwindows', '-static', '-s', '-Bbuild\bosh\')
 # Har bir .cpp alohida jarayonda, bir vaqtda — sekin kompyuterda ancha tezroq
 New-Item -ItemType Directory -Force build\rel | Out-Null
 $jarayonlar = @(); $obyektlar = @()
